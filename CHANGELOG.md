@@ -6,6 +6,25 @@ All notable changes to Linotes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-29
+
+### Added
+
+- Snap package, uploaded to the Snap Store with each release (`sudo snap install linotes` once
+  the store has reviewed it).
+- APT repository for Ubuntu, Debian and derivatives: `sudo apt install linotes` after a one-time
+  setup, with updates through the normal system updates.
+
+### Changed
+
+- The app icon is rebuilt from the original artwork: sharper at every size, without the dark
+  background.
+- The window title bar now follows the app theme, including the system light or dark preference.
+
+### Fixed
+
+- The `.deb` and `.rpm` packages listed their dependencies twice.
+
 ## [0.1.0] - 2026-09-29
 
 First public release.
@@ -30,5 +49,6 @@ First public release.
 - Settings for appearance, editor, storage and keyboard shortcuts.
 - Packaging for `.deb`, `.rpm` and AppImage; draft Flatpak manifest.
 
-[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/arlkn/linotes/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/arlkn/linotes/releases/tag/v0.1.0

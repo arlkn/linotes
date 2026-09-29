@@ -1,7 +1,7 @@
 {
   "name": "linotes",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Linotes \u2014 a local-first Markdown notes app for Linux.",
   "license": "MIT",
   "author": "Aral Alkan",
