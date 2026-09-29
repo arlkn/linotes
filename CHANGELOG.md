@@ -6,6 +6,14 @@ All notable changes to Linotes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-30
+
+### Fixed
+
+- The loading logo appeared at the left edge of the window for a moment before moving to the
+  middle. The window now opens with its full size, in the saved light or dark theme, so nothing
+  jumps or flashes while Linotes starts.
+
 ## [0.1.1] - 2026-09-29
 
 ### Added
@@ -49,6 +57,7 @@ First public release.
 - Settings for appearance, editor, storage and keyboard shortcuts.
 - Packaging for `.deb`, `.rpm` and AppImage; draft Flatpak manifest.
 
-[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/arlkn/linotes/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/arlkn/linotes/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/arlkn/linotes/releases/tag/v0.1.0

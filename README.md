@@ -23,7 +23,7 @@ Your notes are plain Markdown files in a folder you choose — no account, no cl
   <img src="docs/screenshots/linotes-dark.png" width="49%" alt="Linotes in dark mode">
 </p>
 
-> **Status:** early release (0.1.1). Linotes is fully usable and your notes are always plain files,
+> **Status:** early release (0.1.2). Linotes is fully usable and your notes are always plain files,
 > but it is young software — please [report anything that feels off](https://github.com/arlkn/linotes/issues).
 > Contributions and feedback are very welcome!
 
@@ -117,23 +117,23 @@ To update, install a newer release the same way.
 **Fedora**
 
 ```bash
-curl -LO https://github.com/arlkn/linotes/releases/download/v0.1.1/Linotes-0.1.1-1.x86_64.rpm
-sudo dnf install ./Linotes-0.1.1-1.x86_64.rpm
+curl -LO https://github.com/arlkn/linotes/releases/download/v0.1.2/Linotes-0.1.2-1.x86_64.rpm
+sudo dnf install ./Linotes-0.1.2-1.x86_64.rpm
 ```
 
 **openSUSE**
 
 ```bash
-curl -LO https://github.com/arlkn/linotes/releases/download/v0.1.1/Linotes-0.1.1-1.x86_64.rpm
-sudo zypper install --allow-unsigned-rpm ./Linotes-0.1.1-1.x86_64.rpm
+curl -LO https://github.com/arlkn/linotes/releases/download/v0.1.2/Linotes-0.1.2-1.x86_64.rpm
+sudo zypper install --allow-unsigned-rpm ./Linotes-0.1.2-1.x86_64.rpm
 ```
 
 **AppImage (any distribution, no installation needed)**
 
 ```bash
-wget https://github.com/arlkn/linotes/releases/download/v0.1.1/Linotes_0.1.1_amd64.AppImage
-chmod +x Linotes_0.1.1_amd64.AppImage
-./Linotes_0.1.1_amd64.AppImage
+wget https://github.com/arlkn/linotes/releases/download/v0.1.2/Linotes_0.1.2_amd64.AppImage
+chmod +x Linotes_0.1.2_amd64.AppImage
+./Linotes_0.1.2_amd64.AppImage
 ```
 
 If you downloaded a file in your browser instead, open the terminal in the folder where it was saved
@@ -142,7 +142,7 @@ If you downloaded a file in your browser instead, open the terminal in the folde
 To check a download, fetch the checksums and verify:
 
 ```bash
-wget https://github.com/arlkn/linotes/releases/download/v0.1.1/SHA256SUMS
+wget https://github.com/arlkn/linotes/releases/download/v0.1.2/SHA256SUMS
 sha256sum --check --ignore-missing SHA256SUMS
 ```
 
