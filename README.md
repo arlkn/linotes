@@ -75,27 +75,34 @@ the Linux desktop. Linotes takes a different path:
 
 ## Installation
 
-Linotes runs on 64-bit x86 Linux with WebKitGTK 4.1 (Ubuntu 22.04+, Debian 12+, Fedora 38+ or
-similar). Open a terminal and run the commands for your distribution.
+Linotes runs on 64-bit x86 Linux (Ubuntu 22.04+, Debian 12+, Fedora 38+ or similar).
 
-**Ubuntu, or any distribution with Snap** — from the [Snap Store](https://snapcraft.io/linotes),
-updated automatically:
+### Snap Store (recommended)
 
 ```bash
 sudo snap install linotes
 ```
 
-**Ubuntu, Debian, Linux Mint, Pop!_OS (APT)** — add the Linotes repository once, then install.
-New versions arrive with your normal system updates.
+Or search for **Linotes** in the Ubuntu App Center ([snapcraft.io/linotes](https://snapcraft.io/linotes)).
+Snap comes with Ubuntu; other distributions can [set it up](https://snapcraft.io/docs/installing-snapd)
+first. Updates install automatically.
+
+### APT (Ubuntu, Debian, Linux Mint, Pop!_OS)
+
+Add the Linotes repository once; after that, Linotes updates with the rest of your system.
 
 ```bash
 sudo curl -fsSLo /etc/apt/sources.list.d/linotes.sources https://arlkn.github.io/linotes/linotes.sources
 sudo apt update && sudo apt install linotes
 ```
 
-The other packages below come from the
-[latest release](https://github.com/arlkn/linotes/releases/latest); install a newer release the
-same way to update.
+<details>
+<summary><strong>Other ways to install</strong> — Fedora, openSUSE, AppImage</summary>
+
+<br>
+
+These download a package from the [latest release](https://github.com/arlkn/linotes/releases/latest).
+To update, install a newer release the same way.
 
 **Fedora**
 
@@ -111,7 +118,7 @@ curl -LO https://github.com/arlkn/linotes/releases/download/v0.1.1/Linotes-0.1.1
 sudo zypper install --allow-unsigned-rpm ./Linotes-0.1.1-1.x86_64.rpm
 ```
 
-**Any distribution (AppImage, no installation needed)**
+**AppImage (any distribution, no installation needed)**
 
 ```bash
 wget https://github.com/arlkn/linotes/releases/download/v0.1.1/Linotes_0.1.1_amd64.AppImage
@@ -119,8 +126,8 @@ chmod +x Linotes_0.1.1_amd64.AppImage
 ./Linotes_0.1.1_amd64.AppImage
 ```
 
-If you downloaded a package in your browser instead, open the terminal in the folder where it was
-saved (usually *Downloads*) before running the install command — `./` means "this folder".
+If you downloaded a file in your browser instead, open the terminal in the folder where it was saved
+(usually *Downloads*) before running the install command — `./` means "this folder".
 
 To check a download, fetch the checksums and verify:
 
@@ -129,12 +136,21 @@ wget https://github.com/arlkn/linotes/releases/download/v0.1.1/SHA256SUMS
 sha256sum --check --ignore-missing SHA256SUMS
 ```
 
-To uninstall: `sudo snap remove linotes`, `sudo apt remove linotes` (and `sudo rm /etc/apt/sources.list.d/linotes.sources` to
-remove the repository), `sudo dnf remove linotes` or `sudo zypper remove linotes`, or delete the
-AppImage. Your notes stay in `~/Documents/Linotes`.
+You can also [build from source](#building-from-source).
 
-Linotes is not on Flathub yet — see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). You can also
-[build from source](#building-from-source).
+</details>
+
+### Uninstall
+
+| Installed with | Remove with |
+| --- | --- |
+| Snap | `sudo snap remove linotes` |
+| APT | `sudo apt remove linotes`, then `sudo rm /etc/apt/sources.list.d/linotes.sources` |
+| Fedora / openSUSE | `sudo dnf remove linotes` / `sudo zypper remove linotes` |
+| AppImage | Delete the file |
+
+Your notes stay in `~/Documents/Linotes` either way. Linotes is not on Flathub yet — see
+[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
 
 ## Building from source
 
