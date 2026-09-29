@@ -73,6 +73,14 @@ the Linux desktop. Linotes takes a different path:
 - Complete keyboard control (see [shortcuts](#keyboard-shortcuts)), interface zoom
 - No network access while taking notes; strict sandboxing of the web view
 
+<p align="center">
+  <a href="docs/screenshots/linotes-search.png"><img src="docs/screenshots/linotes-search.png" width="32%" alt="Full-text search with highlighted results"></a>
+  <a href="docs/screenshots/linotes-markdown.png"><img src="docs/screenshots/linotes-markdown.png" width="32%" alt="Markdown mode showing the raw source of a note"></a>
+  <a href="docs/screenshots/linotes-settings.png"><img src="docs/screenshots/linotes-settings.png" width="32%" alt="Appearance settings with theme and accent colours"></a>
+  <br>
+  <sub>Search · Markdown mode · Settings</sub>
+</p>
+
 ## Installation
 
 Linotes runs on 64-bit x86 Linux (Ubuntu 22.04+, Debian 12+, Fedora 38+ or similar).

@@ -36,6 +36,18 @@
       <caption>Dark mode</caption>
       <image>https://raw.githubusercontent.com/arlkn/linotes/main/docs/screenshots/linotes-dark.png</image>
     </screenshot>
+    <screenshot>
+      <caption>Full-text search with highlighted results</caption>
+      <image>https://raw.githubusercontent.com/arlkn/linotes/main/docs/screenshots/linotes-search.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Markdown mode for editing the raw source</caption>
+      <image>https://raw.githubusercontent.com/arlkn/linotes/main/docs/screenshots/linotes-markdown.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Settings</caption>
+      <image>https://raw.githubusercontent.com/arlkn/linotes/main/docs/screenshots/linotes-settings.png</image>
+    </screenshot>
   </screenshots>
   <launchable type="desktop-id">io.github.arlkn.Linotes.desktop</launchable>
   <categories>
