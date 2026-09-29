@@ -28,3 +28,6 @@ blob-report/
 # Local Flatpak builds
 .flatpak-build-dir/
 .flatpak-builder/
+
+# Private signing keys (see scripts/create-apt-signing-key.sh)
+*-key.asc

@@ -20,4 +20,5 @@ gpg --batch --armor --export-secret-keys "$fingerprint" | gh secret set APT_SIGN
 
 echo
 echo "Stored key $fingerprint as the APT_SIGNING_KEY secret of arlkn/linotes."
-echo "Back it up with:  gpg --armor --export-secret-keys $fingerprint > linotes-apt-key.asc"
+echo "Back it up with:  gpg --armor --export-secret-keys $fingerprint > ~/linotes-apt-key.asc"
+echo "Then move that file somewhere safe (a USB stick or password manager) and never commit it."
