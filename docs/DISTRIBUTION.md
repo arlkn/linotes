@@ -85,7 +85,8 @@ Publishing a release runs [`.github/workflows/snap.yml`](../.github/workflows/sn
 repackages the release's `.deb` as a snap (so the snap runs the same binary) and uploads it to the
 `stable` channel. The workflow can also be run by hand from the Actions tab; it then builds a `.deb`
 from the chosen branch and only attaches the snap to the run, for testing with
-`sudo snap install --dangerous ./linotes_*.snap`.
+`sudo snap install --dangerous ./linotes_*.snap`. To upload an existing release again (for example
+after a failed upload), run it by hand with the release's tag in the *release* field.
 
 **One-time setup** (needs an [Ubuntu One](https://login.ubuntu.com) account):
 

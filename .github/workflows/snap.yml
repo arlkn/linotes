@@ -2,13 +2,20 @@ name: Snap
 
 # Packs the snap from the release's .deb (snap/snapcraft.yaml repackages it).
 # When a release is published, the snap is uploaded to the Snap Store's stable
-# channel; the store reviews each revision before it goes public. Running the
-# workflow by hand builds a .deb from the chosen branch and only attaches the
-# snap to the run, for testing.
+# channel; the store reviews each revision before it goes public.
+#
+# Running the workflow by hand either publishes an existing release (give its
+# tag), or builds a .deb from the chosen branch and only attaches the snap to
+# the run, for testing.
 on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      release:
+        description: Release tag to publish to the Snap Store (e.g. v0.1.1); leave empty to build a test snap
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -16,7 +23,7 @@ permissions:
 jobs:
   deb:
     name: Build .deb for testing
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.release == ''
     # Same environment as the release workflow.
     runs-on: ubuntu-22.04
     steps:
@@ -60,19 +67,20 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Download the release's .deb
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || inputs.release != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name || inputs.release }}
         run: |
           mkdir -p src-tauri/target/release/bundle/deb
           cd src-tauri/target/release/bundle/deb
-          gh release download "${{ github.event.release.tag_name }}" --repo "${{ github.repository }}" \
+          gh release download "$TAG" --repo "${{ github.repository }}" \
             --pattern '*.deb' --pattern SHA256SUMS
           sha256sum --check --ignore-missing SHA256SUMS
           rm SHA256SUMS
 
       - name: Download the test .deb
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && inputs.release == ''
         uses: actions/download-artifact@v8
         with:
           name: deb
@@ -98,7 +106,8 @@ jobs:
   publish:
     name: Publish to the Snap Store
     needs: snap
-    if: github.event_name == 'release'
+    # The skipped test .deb job would otherwise skip this job too.
+    if: ${{ !cancelled() && needs.snap.result == 'success' && (github.event_name == 'release' || inputs.release != '') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v8
