@@ -17,8 +17,12 @@ npm run tauri build
 ```
 
 ```bash
-flatpak-builder --user --install --force-clean build-dir flatpak/io.github.arlkn.Linotes.yml
+flatpak run org.flatpak.Builder --user --install --install-deps-from=flathub --force-clean --state-dir="$HOME/.cache/linotes-flatpak/state" "$HOME/.cache/linotes-flatpak/build" flatpak/io.github.arlkn.Linotes.yml
 ```
+
+Keep the build folders outside the project: they contain sandbox symlink loops that break the
+Vite dev server's file watcher. If the build fails with `Failure spawning rofiles-fuse` (common on
+recent Ubuntu), add `--disable-rofiles-fuse`.
 
 ```bash
 flatpak run io.github.arlkn.Linotes
