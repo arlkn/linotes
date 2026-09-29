@@ -33,11 +33,9 @@
     "linux": {
       "deb": {
         "section": "editors",
-        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"],
         "desktopTemplate": "packaging/linotes.desktop.hbs"
       },
       "rpm": {
-        "depends": ["webkit2gtk4.1", "gtk3"],
         "desktopTemplate": "packaging/linotes.desktop.hbs"
       },
       "appimage": {
