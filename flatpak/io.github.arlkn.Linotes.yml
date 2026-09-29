@@ -1,8 +1,9 @@
-# Flatpak manifest (DRAFT — see flatpak/README.md).
+# Flatpak manifest for LOCAL TESTING ONLY — see flatpak/README.md.
 #
-# Repackages the .deb produced by `npm run tauri build`. A Flathub submission
-# must instead build from source with vendored Cargo and npm dependencies
-# (flatpak-builder-tools: flatpak-cargo-generator / flatpak-node-generator).
+# This file was written with AI assistance. Flathub does not accept
+# AI-generated or AI-assisted manifests, so it must not be submitted to
+# Flathub or used as the basis of a submission. It repackages the .deb
+# produced by `npm run tauri build`.
 id: io.github.arlkn.Linotes
 runtime: org.gnome.Platform
 runtime-version: '48'

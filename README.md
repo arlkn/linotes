@@ -254,6 +254,27 @@ Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full picture.
 - [ ] Translations
 - [ ] Optional encrypted notebooks (only after an independent review)
 
+## How Linotes was built
+
+Linotes is openly **AI-assisted**. It was created by Aral Alkan working with
+[Claude](https://www.anthropic.com/claude), Anthropic's AI model, through Claude Code:
+
+- **Aral Alkan** set the product vision, requirements and design direction, chose the icon,
+  tested the app on Ubuntu, and decides what ships.
+- **Claude** wrote the code (the Rust backend and the React interface), the tests, the
+  documentation, the build and release workflows and the packaging, and prepared the icon for use
+  (removing its background).
+- **The icon artwork** was generated with Google Gemini.
+
+Every change is checked by automated tests — Rust unit and integration tests, Vitest, and Playwright
+end-to-end tests, including randomized tests that Markdown saving never loses text — plus dependency
+audits and CI on a clean machine. Commits made with AI help carry a `Co-Authored-By: Claude` trailer,
+so the history shows which changes were AI-assisted.
+
+AI-written code can contain mistakes like any other code. Please review it critically and
+[report anything that looks wrong](https://github.com/arlkn/linotes/issues). If you contribute with
+the help of AI tools, please say so in your pull request.
+
 ## Contributing
 
 Contributions are welcome — please read [CONTRIBUTING.md](CONTRIBUTING.md) and our

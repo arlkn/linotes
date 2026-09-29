@@ -5,7 +5,7 @@ This is the plan for getting Linotes into Linux app stores. Nothing here is publ
 | Channel | Reaches | Status |
 | --- | --- | --- |
 | GitHub Releases (`.deb`, `.rpm`, AppImage) | Everyone, manual install | Ready — tag `vX.Y.Z` and the release workflow builds a draft release |
-| **Flathub** | GNOME Software, KDE Discover, Fedora, Mint, elementary, … | Manifest draft in [`flatpak/`](../flatpak/) |
+| **Flathub** | GNOME Software, KDE Discover, Fedora, Mint, elementary, … | Not submitted — needs a manifest written by a person ([see below](#flathub)) |
 | **Snap Store** | Ubuntu App Center | Recipe draft in [`snap/snapcraft.yaml`](../snap/snapcraft.yaml) |
 | AUR (`linotes-bin`) | Arch Linux, Manjaro, EndeavourOS | Planned (PKGBUILD repackaging the release `.deb`) |
 | AppImageHub | AppImage users | Planned |
@@ -29,22 +29,26 @@ treat a new ID as a different app.
 
 ## Flathub
 
-Flathub builds everything from source **without network access**, so the draft manifest (which
-repackages a local `.deb`) must be replaced by a source build:
+Flathub has a [generative AI policy](https://docs.flathub.org/docs/for-app-authors/requirements#generative-ai-policy)
+that applies directly to Linotes, which was built with AI assistance (see
+[How Linotes was built](../README.md#how-linotes-was-built)):
 
-1. Generate offline dependency lists with
-   [flatpak-builder-tools](https://github.com/flatpak/flatpak-builder-tools):
-   `flatpak-cargo-generator.py src-tauri/Cargo.lock -o cargo-sources.json` and
-   `flatpak-node-generator npm package-lock.json -o node-sources.json`.
-2. Build with `org.gnome.Platform` (it ships WebKitGTK 4.1) plus the Rust and Node SDK extensions,
-   running `npm ci --offline` and `cargo build --release --offline`.
-3. Install the binary, `io.github.arlkn.Linotes.desktop`, the metainfo file and icons
-   (256×256 and 512×512 PNG) under `/app`.
-4. Test locally with `flatpak-builder --user --install`, then open a pull request against
-   [flathub/flathub](https://github.com/flathub/flathub) following their submission guide.
+- **The manifest must be written by a person.** Flathub manifests must not contain AI-generated
+  or AI-assisted content. The manifest in [`flatpak/`](../flatpak/) was written with AI assistance
+  and is only for local testing — do not submit it or base a submission on it.
+- **The submission must be made by a person.** AI tools must not open or automate the pull request,
+  or write its commit messages, description, review comments or replies.
+- **AI use must be disclosed.** The submission must state which code, documentation, packaging and
+  other material in the app is AI-generated. Reviewers may reject a submission based on the extent
+  of generated material.
+- **The app needs a track record.** Flathub expects a meaningful history of development, evidence
+  of real-world use and a clear commitment to maintenance.
 
-Sandbox permissions: `--filesystem=xdg-documents/Linotes:create` for the default notes folder; other
-folders are granted through the file chooser portal. No network permission is requested.
+When those conditions can be met, follow Flathub's
+[submission guide](https://docs.flathub.org/docs/for-app-authors/submission) and
+[Tauri's Flatpak guide](https://v2.tauri.app/distribute/flatpak/). Flathub builds apps from source
+without network access. The desktop entry and AppStream metadata in `flatpak/` belong to Linotes
+itself (disclosed as AI-assisted) and can be installed by a manifest.
 
 ## Snap Store
 
