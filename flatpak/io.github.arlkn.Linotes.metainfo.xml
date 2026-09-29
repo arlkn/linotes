@@ -60,6 +60,12 @@
     <color type="primary" scheme_preference="dark">#7a2e12</color>
   </branding>
   <releases>
-    <release version="0.1.0" type="development" date="2026-09-29" />
+    <release version="0.1.0" type="stable" date="2026-09-29">
+      <url type="details">https://github.com/arlkn/linotes/releases/tag/v0.1.0</url>
+      <description>
+        <p>First public release: Markdown notes with a rich text editor and a Markdown mode,
+        folders, favorites, trash, full-text search, import and export.</p>
+      </description>
+    </release>
   </releases>
 </component>

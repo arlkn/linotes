@@ -21,9 +21,9 @@ Your notes are plain Markdown files in a folder you choose — no account, no cl
   <img src="docs/screenshots/linotes-dark.png" width="49%" alt="Linotes in dark mode">
 </p>
 
-> **Status:** early development (0.1.0). Linotes is fully usable, but no stable release or store
-> package has been published yet. You can [build it from source](#building-from-source) today, and
-> help shape the first release — contributions and feedback are very welcome!
+> **Status:** first release (0.1.0). Linotes is fully usable and your notes are always plain files,
+> but it is young software — please [report anything that feels off](https://github.com/arlkn/linotes/issues).
+> Contributions and feedback are very welcome!
 
 ## Why Linotes?
 
@@ -73,8 +73,32 @@ the Linux desktop. Linotes takes a different path:
 
 ## Installation
 
-Pre-built packages (`.deb`, `.rpm`, AppImage) will be attached to GitHub releases once the
-project is published. Until then, [build from source](#building-from-source).
+Download the package for your distribution from the
+[latest release](https://github.com/arlkn/linotes/releases/latest)
+(64-bit x86 · requires WebKitGTK 4.1 · Ubuntu 22.04+, Debian 12+, Fedora 38+ or similar).
+
+**Ubuntu, Debian, Linux Mint, Pop!_OS** — download the `.deb`, then:
+
+```bash
+sudo apt install ./Linotes_0.1.0_amd64.deb
+```
+
+**Fedora, openSUSE** — download the `.rpm`, then:
+
+```bash
+sudo dnf install ./Linotes-0.1.0-1.x86_64.rpm
+```
+
+**Any distribution** — download the `.AppImage`, make it executable and run it:
+
+```bash
+chmod +x Linotes_0.1.0_amd64.AppImage && ./Linotes_0.1.0_amd64.AppImage
+```
+
+Each release lists SHA-256 checksums in `SHA256SUMS`; verify a download with
+`sha256sum --check --ignore-missing SHA256SUMS`. Store packages (Flathub, Snap Store) are
+planned — see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). You can also
+[build from source](#building-from-source).
 
 ## Building from source
 
@@ -221,7 +245,8 @@ Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full picture.
 
 ## Roadmap
 
-- [ ] First public release with signed packages
+- [x] First public release (0.1.0)
+- [ ] Signed release artifacts
 - [ ] Flathub and Snap Store packages — see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)
 - [ ] Tables and images in the rich text editor (they already work in Markdown mode)
 - [ ] Links between notes and backlinks

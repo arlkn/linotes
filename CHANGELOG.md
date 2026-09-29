@@ -6,9 +6,9 @@ All notable changes to Linotes are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-09-29
 
-First version.
+First public release.
 
 ### Added
 
@@ -29,3 +29,6 @@ First version.
   everything as ZIP.
 - Settings for appearance, editor, storage and keyboard shortcuts.
 - Packaging for `.deb`, `.rpm` and AppImage; draft Flatpak manifest.
+
+[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/arlkn/linotes/releases/tag/v0.1.0
