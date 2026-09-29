@@ -73,32 +73,54 @@ the Linux desktop. Linotes takes a different path:
 
 ## Installation
 
-Download the package for your distribution from the
-[latest release](https://github.com/arlkn/linotes/releases/latest)
-(64-bit x86 · requires WebKitGTK 4.1 · Ubuntu 22.04+, Debian 12+, Fedora 38+ or similar).
+Linotes runs on 64-bit x86 Linux with WebKitGTK 4.1 (Ubuntu 22.04+, Debian 12+, Fedora 38+ or
+similar). Open a terminal and run the commands for your distribution — they download the package
+from the [latest release](https://github.com/arlkn/linotes/releases/latest) and install it.
 
-**Ubuntu, Debian, Linux Mint, Pop!_OS** — download the `.deb`, then:
+**Ubuntu, Debian, Linux Mint, Pop!_OS**
 
 ```bash
+wget https://github.com/arlkn/linotes/releases/download/v0.1.0/Linotes_0.1.0_amd64.deb
 sudo apt install ./Linotes_0.1.0_amd64.deb
 ```
 
-**Fedora, openSUSE** — download the `.rpm`, then:
+**Fedora**
 
 ```bash
+curl -LO https://github.com/arlkn/linotes/releases/download/v0.1.0/Linotes-0.1.0-1.x86_64.rpm
 sudo dnf install ./Linotes-0.1.0-1.x86_64.rpm
 ```
 
-**Any distribution** — download the `.AppImage`, make it executable and run it:
+**openSUSE**
 
 ```bash
-chmod +x Linotes_0.1.0_amd64.AppImage && ./Linotes_0.1.0_amd64.AppImage
+curl -LO https://github.com/arlkn/linotes/releases/download/v0.1.0/Linotes-0.1.0-1.x86_64.rpm
+sudo zypper install --allow-unsigned-rpm ./Linotes-0.1.0-1.x86_64.rpm
 ```
 
-Each release lists SHA-256 checksums in `SHA256SUMS`; verify a download with
-`sha256sum --check --ignore-missing SHA256SUMS`. Store packages (Flathub, Snap Store) are
-planned — see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). You can also
-[build from source](#building-from-source).
+**Any distribution (AppImage, no installation needed)**
+
+```bash
+wget https://github.com/arlkn/linotes/releases/download/v0.1.0/Linotes_0.1.0_amd64.AppImage
+chmod +x Linotes_0.1.0_amd64.AppImage
+./Linotes_0.1.0_amd64.AppImage
+```
+
+If you downloaded a package in your browser instead, open the terminal in the folder where it was
+saved (usually *Downloads*) before running the install command — `./` means "this folder".
+
+To check a download, fetch the checksums and verify:
+
+```bash
+wget https://github.com/arlkn/linotes/releases/download/v0.1.0/SHA256SUMS
+sha256sum --check --ignore-missing SHA256SUMS
+```
+
+To uninstall: `sudo apt remove linotes`, `sudo dnf remove linotes` or `sudo zypper remove linotes`
+(or delete the AppImage). Your notes stay in `~/Documents/Linotes`.
+
+Store packages (Flathub, Snap Store) are planned — see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
+You can also [build from source](#building-from-source).
 
 ## Building from source
 

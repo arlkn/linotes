@@ -90,6 +90,17 @@ The SQLite index is versioned with `PRAGMA user_version`. To change the schema, 
 new schema needs data that only exists in the Markdown files, set the `needs_full_reindex` flag
 in the migration (see `0002_full_text_search.sql`).
 
+## Releasing a new version
+
+1. Update the version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`.
+2. Move the *Unreleased* entries in `CHANGELOG.md` under the new version, and add a `<release>`
+   entry to `flatpak/io.github.arlkn.Linotes.metainfo.xml`.
+3. Update the version numbers in the install commands in `README.md`.
+4. Commit, wait for CI to pass, then tag and push: `git tag -a vX.Y.Z -m "Linotes X.Y.Z"` and
+   `git push origin vX.Y.Z`.
+5. The release workflow builds the packages into a draft release. Check the files, write the
+   notes, and publish it.
+
 ## Commit messages
 
 Use short, imperative subjects (`Fix conflict banner focus`, `Add tag filter`). Explain *why* in
