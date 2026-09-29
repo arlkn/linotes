@@ -3,11 +3,11 @@
 import { chromium } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-const icon = readFileSync('assets/linotes-icon.svg').toString('base64');
+const icon = readFileSync('assets/linotes-icon.png').toString('base64');
 const html = `<!doctype html><html><body style="margin:0">
 <div style="width:1280px;height:640px;display:flex;align-items:center;gap:64px;padding:0 96px;box-sizing:border-box;
   background:linear-gradient(135deg,#faf9f6 0%,#f3ede6 100%);font-family:'Ubuntu Sans','Ubuntu','Cantarell',sans-serif;color:#242424">
-  <img src="data:image/svg+xml;base64,${icon}" style="width:360px;height:360px;flex:none">
+  <img src="data:image/png;base64,${icon}" style="width:360px;height:360px;flex:none">
   <div>
     <div style="font-size:96px;font-weight:700;letter-spacing:-2px">Linotes</div>
     <div style="font-size:36px;color:#c74616;font-weight:600;margin-top:8px">Your notes. Your Linux. Your data.</div>

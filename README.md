@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/linotes-icon.svg" width="128" height="128" alt="Linotes — a penguin writing a note">
+<img src="assets/linotes-icon.png" width="128" height="128" alt="Linotes — a penguin writing a note">
 
 # Linotes
 
