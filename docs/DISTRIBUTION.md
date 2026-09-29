@@ -82,9 +82,10 @@ The Snap Store has no rules against AI-assisted apps (checked September 2026). S
 reviews every new snap and every new revision before it becomes public.
 
 Publishing a release runs [`.github/workflows/snap.yml`](../.github/workflows/snap.yml), which
-builds the snap on Ubuntu 24.04 and uploads it to the `stable` channel. The workflow can also be run
-by hand from the Actions tab; it then only builds the snap and attaches it to the run, for testing
-with `sudo snap install --dangerous ./linotes_*.snap`.
+repackages the release's `.deb` as a snap (so the snap runs the same binary) and uploads it to the
+`stable` channel. The workflow can also be run by hand from the Actions tab; it then builds a `.deb`
+from the chosen branch and only attaches the snap to the run, for testing with
+`sudo snap install --dangerous ./linotes_*.snap`.
 
 **One-time setup** (needs an [Ubuntu One](https://login.ubuntu.com) account):
 

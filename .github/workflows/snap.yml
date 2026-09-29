@@ -1,8 +1,10 @@
 name: Snap
 
-# Builds the snap from snap/snapcraft.yaml. When a release is published, the snap
-# is also uploaded to the Snap Store's stable channel (the store reviews each
-# revision before it goes public).
+# Packs the snap from the release's .deb (snap/snapcraft.yaml repackages it).
+# When a release is published, the snap is uploaded to the Snap Store's stable
+# channel; the store reviews each revision before it goes public. Running the
+# workflow by hand builds a .deb from the chosen branch and only attaches the
+# snap to the run, for testing.
 on:
   release:
     types: [published]
@@ -12,20 +14,76 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  deb:
+    name: Build .deb for testing
+    if: github.event_name == 'workflow_dispatch'
+    # Same environment as the release workflow.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl wget file pkg-config \
+            libwebkit2gtk-4.1-dev libssl-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run tauri build -- --bundles deb
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: deb
+          path: src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: error
+
+  snap:
     name: Build snap
+    needs: deb
+    if: ${{ !cancelled() && (needs.deb.result == 'success' || needs.deb.result == 'skipped') }}
     runs-on: ubuntu-24.04
     outputs:
       file: ${{ steps.pack.outputs.file }}
     steps:
       - uses: actions/checkout@v7
 
+      - name: Download the release's .deb
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p src-tauri/target/release/bundle/deb
+          cd src-tauri/target/release/bundle/deb
+          gh release download "${{ github.event.release.tag_name }}" --repo "${{ github.repository }}" \
+            --pattern '*.deb' --pattern SHA256SUMS
+          sha256sum --check --ignore-missing SHA256SUMS
+          rm SHA256SUMS
+
+      - name: Download the test .deb
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/download-artifact@v8
+        with:
+          name: deb
+          path: src-tauri/target/release/bundle/deb
+
       - name: Install Snapcraft
         run: sudo snap install snapcraft --classic
 
       # The runner is a throwaway Ubuntu 24.04 VM, the same as the core24 base,
-      # so the snap can be built directly on it instead of in a container.
-      - name: Build
+      # so the snap can be packed directly on it instead of in a container.
+      - name: Pack
         id: pack
         run: |
           sudo snapcraft pack --destructive-mode
@@ -39,7 +97,7 @@ jobs:
 
   publish:
     name: Publish to the Snap Store
-    needs: build
+    needs: snap
     if: github.event_name == 'release'
     runs-on: ubuntu-24.04
     steps:
@@ -56,4 +114,4 @@ jobs:
             exit 0
           fi
           sudo snap install snapcraft --classic
-          snapcraft upload --release=stable "${{ needs.build.outputs.file }}"
+          snapcraft upload --release=stable "${{ needs.snap.outputs.file }}"

@@ -1,9 +1,9 @@
 # Snap package recipe. Built and published by .github/workflows/snap.yml;
-# see docs/DISTRIBUTION.md for building it locally.
+# see docs/DISTRIBUTION.md.
 name: linotes
 title: Linotes
 base: core24
-adopt-info: linotes # the version comes from package.json
+adopt-info: linotes # the version comes from the .deb
 summary: Local-first Markdown notes
 description: |
   Linotes is a fast, private notes app for Linux. Your notes are plain Markdown
@@ -59,25 +59,23 @@ plugs:
 
 parts:
   linotes:
-    plugin: dump
-    source: .
-    build-snaps:
-      - node/22/stable
-      - rustup/latest/stable
+    # Repackages the .deb from the release build, so the snap runs the same binary
+    # as the .deb and APT packages. snap.yml puts it in this folder.
+    plugin: nil
+    source: src-tauri/target/release/bundle/deb
     build-packages:
-      - build-essential
-      - pkg-config
       - dpkg
-      - libwebkit2gtk-4.1-dev
-      - libdbus-1-dev
-    override-pull: |
-      craftctl default
-      craftctl set version="$(sed -n 's/^  "version": "\(.*\)",$/\1/p' package.json)"
     override-build: |
       set -eu
-      rustup default stable
-      npm ci
-      npm run tauri build -- --bundles deb
-      dpkg -x src-tauri/target/release/bundle/deb/*.deb "$CRAFT_PART_INSTALL/"
+      # The GNOME extension points LD_LIBRARY_PATH at its SDK, whose C library
+      # does not match the build machine's; host tools must not load it.
+      unset LD_LIBRARY_PATH
+      set -- *.deb
+      if [ $# -ne 1 ]; then
+        echo "Expected one .deb, found: $*" >&2
+        exit 1
+      fi
+      dpkg-deb -x "$1" "$CRAFT_PART_INSTALL/"
+      craftctl set version="$(dpkg-deb -f "$1" Version)"
       sed -i -e "s|^Icon=linotes$|Icon=/usr/share/icons/hicolor/512x512/apps/linotes.png|" \
         "$CRAFT_PART_INSTALL/usr/share/applications/Linotes.desktop"
