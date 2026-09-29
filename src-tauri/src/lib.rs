@@ -21,9 +21,8 @@ mod storage;
 
 use state::{AppState, lock};
 use std::sync::atomic::Ordering;
-use std::time::Duration;
 use tauri::webview::NewWindowResponse;
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, Theme, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
 pub const MAIN_WINDOW: &str = "main";
 /// Sent to the frontend when the user closes the window, so pending edits can be saved first.
@@ -64,13 +63,11 @@ pub fn run() {
             let handle = app.handle().clone();
             let state = app.state::<AppState>();
             state.open_configured_library(&handle);
-            let geometry = lock(&state.settings).window.clone();
-            let window = create_main_window(app, &geometry)?;
-            // Safety net: show the window even if the frontend never reports ready.
-            std::thread::spawn(move || {
-                std::thread::sleep(Duration::from_secs(4));
-                show_main_window(&window);
-            });
+            let (geometry, theme) = {
+                let settings = lock(&state.settings);
+                (settings.window.clone(), desktop::initial_theme(settings.theme))
+            };
+            create_main_window(app, &geometry, theme)?;
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -129,14 +126,26 @@ pub fn run() {
 
 /// The main window is created here (not in tauri.conf.json) so it can carry
 /// navigation guards: the webview may only ever show Linotes' own pages.
-fn create_main_window(app: &tauri::App, geometry: &settings::WindowGeometry) -> tauri::Result<WebviewWindow> {
+///
+/// It opens visible, in the saved theme's colours. (A window created hidden has
+/// no size on Linux, so the page would lay out at 0×0 and its first frame would
+/// be misplaced when the window appeared.)
+fn create_main_window(
+    app: &tauri::App,
+    geometry: &settings::WindowGeometry,
+    theme: Theme,
+) -> tauri::Result<WebviewWindow> {
     let dev_url = if cfg!(debug_assertions) { app.config().build.dev_url.clone() } else { None };
-    let window = WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::App("index.html".into()))
+    WebviewWindowBuilder::new(app, MAIN_WINDOW, WebviewUrl::App("index.html".into()))
         .title("Linotes")
         .inner_size(f64::from(geometry.width), f64::from(geometry.height))
         .min_inner_size(720.0, 480.0)
+        .maximized(geometry.maximized)
         .center()
-        .visible(false)
+        .theme(Some(theme))
+        .background_color(desktop::background_color(theme))
+        // Read by src/main.tsx so the first paint already uses the right theme.
+        .initialization_script(format!("window.__LINOTES_THEME__ = '{}';", desktop::theme_name(theme)))
         .disable_drag_drop_handler()
         .on_navigation(move |url| {
             let allowed = security::is_app_url(url, dev_url.as_ref());
@@ -149,11 +158,7 @@ fn create_main_window(app: &tauri::App, geometry: &settings::WindowGeometry) -> 
             log::warn!("Blocked a new window for {url}");
             NewWindowResponse::Deny
         })
-        .build()?;
-    if geometry.maximized {
-        let _ = window.maximize();
-    }
-    Ok(window)
+        .build()
 }
 
 pub(crate) fn show_main_window(window: &WebviewWindow) {

@@ -18,7 +18,8 @@ pub struct AppInfo {
     pub notes_dir: String,
 }
 
-/// The frontend has rendered with the user's theme; show the window.
+/// The frontend has finished starting up. The window opens visible, so this
+/// only brings it back if something hid it in the meantime.
 #[tauri::command]
 pub fn app_ready(window: WebviewWindow) -> AppResult<()> {
     crate::show_main_window(&window);
@@ -62,7 +63,7 @@ pub async fn apply_window_theme(window: WebviewWindow, preference: String, fallb
             _ => return Err(AppError::invalid("Unknown theme")),
         };
         window.set_theme(Some(theme)).map_err(|e| AppError::Internal(e.to_string()))?;
-        Ok(if theme == Theme::Dark { "dark" } else { "light" }.to_string())
+        Ok(crate::desktop::theme_name(theme).to_string())
     })
     .await
 }
