@@ -1,0 +1,59 @@
+name: Snap
+
+# Builds the snap from snap/snapcraft.yaml. When a release is published, the snap
+# is also uploaded to the Snap Store's stable channel (the store reviews each
+# revision before it goes public).
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build snap
+    runs-on: ubuntu-24.04
+    outputs:
+      file: ${{ steps.pack.outputs.file }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Snapcraft
+        run: sudo snap install snapcraft --classic
+
+      # The runner is a throwaway Ubuntu 24.04 VM, the same as the core24 base,
+      # so the snap can be built directly on it instead of in a container.
+      - name: Build
+        id: pack
+        run: |
+          sudo snapcraft pack --destructive-mode
+          echo "file=$(ls *.snap)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: snap
+          path: ${{ steps.pack.outputs.file }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish to the Snap Store
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: snap
+
+      - name: Upload to the stable channel
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        run: |
+          if [ -z "$SNAPCRAFT_STORE_CREDENTIALS" ]; then
+            echo "::warning::SNAPCRAFT_STORE_CREDENTIALS is not set; skipping the Snap Store upload."
+            exit 0
+          fi
+          sudo snap install snapcraft --classic
+          snapcraft upload --release=stable "${{ needs.build.outputs.file }}"

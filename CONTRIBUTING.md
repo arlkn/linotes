@@ -99,7 +99,8 @@ in the migration (see `0002_full_text_search.sql`).
 4. Commit, wait for CI to pass, then tag and push: `git tag -a vX.Y.Z -m "Linotes X.Y.Z"` and
    `git push origin vX.Y.Z`.
 5. The release workflow builds the packages into a draft release. Check the files, write the
-   notes, and publish it.
+   notes, and publish it. Publishing also updates the APT repository and uploads the snap to the
+   Snap Store (see [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md)).
 
 ## Commit messages
 

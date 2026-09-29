@@ -1,0 +1,62 @@
+name: APT repository
+
+# Rebuilds the signed APT repository at https://arlkn.github.io/linotes/ from the
+# .deb packages of the latest published releases, whenever a release is published.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build repository
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download the published packages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p debs
+          for tag in $(gh release list --exclude-drafts --exclude-pre-releases --limit 5 --json tagName --jq '.[].tagName'); do
+            mkdir -p "downloads/$tag"
+            gh release download "$tag" --dir "downloads/$tag" --pattern '*.deb' --pattern SHA256SUMS
+            (cd "downloads/$tag" && sha256sum --check --ignore-missing SHA256SUMS)
+            mv "downloads/$tag"/*.deb debs/
+          done
+
+      - name: Import the signing key
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+        run: printf '%s\n' "$APT_SIGNING_KEY" | gpg --batch --import
+
+      - name: Build and sign
+        run: scripts/build-apt-repo.sh debs site "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    name: Publish on GitHub Pages
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v5
+        id: deployment

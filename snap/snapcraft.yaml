@@ -1,8 +1,9 @@
-# Snap package recipe (DRAFT — not yet built or published; see docs/DISTRIBUTION.md).
+# Snap package recipe. Built and published by .github/workflows/snap.yml;
+# see docs/DISTRIBUTION.md for building it locally.
 name: linotes
 title: Linotes
 base: core24
-version: '0.1.0'
+adopt-info: linotes # the version comes from package.json
 summary: Local-first Markdown notes
 description: |
   Linotes is a fast, private notes app for Linux. Your notes are plain Markdown
@@ -13,6 +14,9 @@ description: |
   - Instant full-text search
   - Changes made by other apps and sync tools appear live
   - Import and export Markdown, or back up by copying a folder
+
+  Notes are stored in ~/Documents/Linotes. To keep notes on an external drive, run:
+  sudo snap connect linotes:removable-media
 license: MIT
 website: https://github.com/arlkn/linotes
 source-code: https://github.com/arlkn/linotes
@@ -22,14 +26,36 @@ grade: stable
 confinement: strict
 icon: src-tauri/icons/icon.png
 
+platforms:
+  amd64:
+
 apps:
   linotes:
     command: usr/bin/linotes
     desktop: usr/share/applications/Linotes.desktop
+    common-id: io.github.arlkn.Linotes
+    # The GNOME runtime provides GTK and WebKitGTK, so they are not bundled.
     extensions: [gnome]
     plugs:
       - home # ~/Documents/Linotes (Linotes uses $SNAP_REAL_HOME)
       - removable-media # notes folders on external drives
+      - single-instance-plug
+    slots:
+      - single-instance
+
+# A second launch hands over to the running window over D-Bus
+# (tauri-plugin-single-instance registers "<identifier>.SingleInstance").
+slots:
+  single-instance:
+    interface: dbus
+    bus: session
+    name: io.github.arlkn.Linotes.SingleInstance
+
+plugs:
+  single-instance-plug:
+    interface: dbus
+    bus: session
+    name: io.github.arlkn.Linotes.SingleInstance
 
 parts:
   linotes:
@@ -41,17 +67,12 @@ parts:
     build-packages:
       - build-essential
       - pkg-config
-      - curl
-      - wget
-      - file
       - dpkg
       - libwebkit2gtk-4.1-dev
-      - libssl-dev
-      - libxdo-dev
-      - libayatana-appindicator3-dev
-      - librsvg2-dev
-    stage-packages:
-      - libwebkit2gtk-4.1-0
+      - libdbus-1-dev
+    override-pull: |
+      craftctl default
+      craftctl set version="$(sed -n 's/^  "version": "\(.*\)",$/\1/p' package.json)"
     override-build: |
       set -eu
       rustup default stable
