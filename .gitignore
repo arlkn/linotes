@@ -24,3 +24,7 @@ blob-report/
 *.log
 .env
 .env.*
+
+# Local Flatpak builds
+.flatpak-build-dir/
+.flatpak-builder/
