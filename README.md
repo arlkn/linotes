@@ -74,15 +74,20 @@ the Linux desktop. Linotes takes a different path:
 ## Installation
 
 Linotes runs on 64-bit x86 Linux with WebKitGTK 4.1 (Ubuntu 22.04+, Debian 12+, Fedora 38+ or
-similar). Open a terminal and run the commands for your distribution — they download the package
-from the [latest release](https://github.com/arlkn/linotes/releases/latest) and install it.
+similar). Open a terminal and run the commands for your distribution.
 
 **Ubuntu, Debian, Linux Mint, Pop!_OS**
 
+Add the Linotes repository once, then install. New versions arrive with your normal system updates.
+
 ```bash
-wget https://github.com/arlkn/linotes/releases/download/v0.1.0/Linotes_0.1.0_amd64.deb
-sudo apt install ./Linotes_0.1.0_amd64.deb
+sudo curl -fsSLo /etc/apt/sources.list.d/linotes.sources https://arlkn.github.io/linotes/linotes.sources
+sudo apt update && sudo apt install linotes
 ```
+
+The other packages below come from the
+[latest release](https://github.com/arlkn/linotes/releases/latest); install a newer release the
+same way to update.
 
 **Fedora**
 
@@ -116,11 +121,12 @@ wget https://github.com/arlkn/linotes/releases/download/v0.1.0/SHA256SUMS
 sha256sum --check --ignore-missing SHA256SUMS
 ```
 
-To uninstall: `sudo apt remove linotes`, `sudo dnf remove linotes` or `sudo zypper remove linotes`
-(or delete the AppImage). Your notes stay in `~/Documents/Linotes`.
+To uninstall: `sudo apt remove linotes` (and `sudo rm /etc/apt/sources.list.d/linotes.sources` to
+remove the repository), `sudo dnf remove linotes` or `sudo zypper remove linotes`, or delete the
+AppImage. Your notes stay in `~/Documents/Linotes`.
 
-Store packages (Flathub, Snap Store) are planned — see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
-You can also [build from source](#building-from-source).
+A Snap Store package is on its way and Flathub is planned — see
+[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). You can also [build from source](#building-from-source).
 
 ## Building from source
 
