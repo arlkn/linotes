@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Linotes
+GenericName=Notes
+Comment=Local-first Markdown notes
+Exec=linotes
+Icon=io.github.arlkn.Linotes
+Terminal=false
+Categories=Office;
+Keywords=notes;markdown;notebook;journal;writing;todo;
+StartupWMClass=linotes
+StartupNotify=true

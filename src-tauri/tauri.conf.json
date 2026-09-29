@@ -1,0 +1,49 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Linotes",
+  "mainBinaryName": "linotes",
+  "version": "0.1.0",
+  "identifier": "io.github.arlkn.Linotes",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+      "devCsp": null,
+      "capabilities": ["default"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "rpm", "appimage"],
+    "category": "Productivity",
+    "publisher": "Aral Alkan",
+    "copyright": "Copyright © 2026 Aral Alkan and Linotes contributors",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
+    "shortDescription": "Local-first Markdown notes for Linux",
+    "longDescription": "Linotes is a fast, private, offline-first notes app for Linux. Notes are plain Markdown files in a folder you choose, with full-text search, folders, favorites and a rich text editor.",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.png"],
+    "linux": {
+      "deb": {
+        "section": "editors",
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"],
+        "desktopTemplate": "packaging/linotes.desktop.hbs"
+      },
+      "rpm": {
+        "depends": ["webkit2gtk4.1", "gtk3"],
+        "desktopTemplate": "packaging/linotes.desktop.hbs"
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    },
+    "homepage": "https://github.com/arlkn/linotes"
+  }
+}

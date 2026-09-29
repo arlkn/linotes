@@ -1,0 +1,62 @@
+# Snap package recipe (DRAFT — not yet built or published; see docs/DISTRIBUTION.md).
+name: linotes
+title: Linotes
+base: core24
+version: '0.1.0'
+summary: Local-first Markdown notes
+description: |
+  Linotes is a fast, private notes app for Linux. Your notes are plain Markdown
+  files in a folder you choose — no account, no cloud, no telemetry.
+
+  - Rich text editing with checklists, code blocks and links, or plain Markdown
+  - Folders, favorites, recently edited notes and a Trash with restore
+  - Instant full-text search
+  - Changes made by other apps and sync tools appear live
+  - Import and export Markdown, or back up by copying a folder
+license: MIT
+website: https://github.com/arlkn/linotes
+source-code: https://github.com/arlkn/linotes
+issues: https://github.com/arlkn/linotes/issues
+contact: https://github.com/arlkn/linotes/issues
+grade: stable
+confinement: strict
+icon: src-tauri/icons/icon.png
+
+apps:
+  linotes:
+    command: usr/bin/linotes
+    desktop: usr/share/applications/Linotes.desktop
+    extensions: [gnome]
+    plugs:
+      - home # ~/Documents/Linotes (Linotes uses $SNAP_REAL_HOME)
+      - removable-media # notes folders on external drives
+
+parts:
+  linotes:
+    plugin: dump
+    source: .
+    build-snaps:
+      - node/22/stable
+      - rustup/latest/stable
+    build-packages:
+      - build-essential
+      - pkg-config
+      - curl
+      - wget
+      - file
+      - dpkg
+      - libwebkit2gtk-4.1-dev
+      - libssl-dev
+      - libxdo-dev
+      - libayatana-appindicator3-dev
+      - librsvg2-dev
+    stage-packages:
+      - libwebkit2gtk-4.1-0
+    override-build: |
+      set -eu
+      rustup default stable
+      npm ci
+      npm run tauri build -- --bundles deb
+      dpkg -x src-tauri/target/release/bundle/deb/*.deb "$CRAFT_PART_INSTALL/"
+      sed -i -e "s|^Icon=linotes$|Icon=/usr/share/icons/hicolor/512x512/apps/linotes.png|" \
+        "$CRAFT_PART_INSTALL/usr/share/applications/Linotes.desktop"

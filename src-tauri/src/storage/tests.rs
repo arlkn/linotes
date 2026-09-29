@@ -1,0 +1,575 @@
+//! Library workflow tests against a real temporary notes folder.
+
+use super::note_file::NoteFile;
+use super::*;
+use crate::error::AppError;
+use crate::search::{SearchQuery, SearchScope};
+use std::fs;
+use std::path::{Path, PathBuf};
+use tempfile::TempDir;
+
+struct Fixture {
+    dir: TempDir,
+    lib: Library,
+}
+
+impl Fixture {
+    fn new() -> Self {
+        let dir = tempfile::tempdir().unwrap();
+        let (lib, _) = Library::open_with_memory_index(dir.path()).unwrap();
+        Fixture { dir, lib }
+    }
+
+    fn root(&self) -> PathBuf {
+        self.dir.path().canonicalize().unwrap()
+    }
+
+    fn path(&self, rel: &str) -> PathBuf {
+        self.root().join(rel)
+    }
+
+    fn read(&self, rel: &str) -> String {
+        fs::read_to_string(self.path(rel)).unwrap()
+    }
+
+    fn files(&self, dir: &str) -> Vec<String> {
+        let mut names: Vec<String> = fs::read_dir(self.path(dir))
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| !n.starts_with('.'))
+            .collect();
+        names.sort();
+        names
+    }
+
+    fn save(&mut self, note: &Note, title: &str, content: &str) -> SavedNote {
+        self.lib
+            .save_note(SaveNoteInput {
+                id: note.summary.id.clone(),
+                title: title.into(),
+                content: content.into(),
+                expected_rev: note.rev.clone(),
+                force: false,
+            })
+            .unwrap()
+    }
+
+    /// Simulate a restart: reopen the same folder with a fresh index.
+    fn reopen(&mut self) {
+        let (lib, _) = Library::open_with_memory_index(self.dir.path()).unwrap();
+        self.lib = lib;
+    }
+}
+
+fn search(lib: &Library, text: &str) -> Vec<String> {
+    lib.search(&SearchQuery { text: text.into(), scope: SearchScope::All, folder: None })
+        .unwrap()
+        .into_iter()
+        .map(|h| h.note.id)
+        .collect()
+}
+
+#[test]
+fn create_edit_save_and_reopen() {
+    let mut fx = Fixture::new();
+    let note = fx.lib.create_note("", "Shopping", "").unwrap();
+    assert_eq!(note.summary.title, "Shopping");
+    assert_eq!(fx.files(""), vec!["Shopping.md"]);
+
+    let body = "# Weekend\n\n- [ ] Milk\n- [x] Bread\n\n**Don't** forget the `coffee`.\n";
+    let saved = fx.save(&note, "Shopping", body);
+    assert_ne!(saved.rev, note.rev);
+
+    fx.reopen();
+    let loaded = fx.lib.read_note(&note.summary.id).unwrap();
+    assert_eq!(loaded.content, body);
+    assert_eq!(loaded.summary.title, "Shopping");
+    assert_eq!(loaded.rev, saved.rev);
+    let meta = NoteFile::parse(&fx.read("Shopping.md")).meta();
+    assert_eq!(meta.id.as_deref(), Some(note.summary.id.as_str()));
+    assert!(meta.created.is_some() && meta.updated.is_some());
+}
+
+#[test]
+fn saving_a_new_title_renames_the_file() {
+    let mut fx = Fixture::new();
+    let a = fx.lib.create_note("", "", "").unwrap();
+    assert_eq!(fx.files(""), vec!["Untitled.md"]);
+    let b = fx.lib.create_note("", "", "").unwrap();
+    assert_eq!(fx.files(""), vec!["Untitled 2.md", "Untitled.md"]);
+
+    let a2 = fx.save(&a, "Plans: 2026/Q1?", "text");
+    assert_eq!(fx.files(""), vec!["Plans- 2026-Q1.md", "Untitled 2.md"]);
+    assert_eq!(a2.summary.title, "Plans: 2026/Q1?", "the title keeps characters the file name can't");
+
+    // Colliding title gets a numbered file name; case-only rename works.
+    fx.save(&b, "plans- 2026-q1", "");
+    assert!(fx.files("").contains(&"plans- 2026-q1 2.md".to_string()));
+    let a = fx.lib.read_note(&a.summary.id).unwrap();
+    fx.save(&a, "PLANS: 2026/Q1?", "text");
+    assert!(fx.files("").contains(&"PLANS- 2026-Q1.md".to_string()));
+}
+
+#[test]
+fn autosave_repeatedly_keeps_one_file() {
+    let mut fx = Fixture::new();
+    let mut note = fx.lib.create_note("", "Draft", "").unwrap();
+    for i in 0..20 {
+        let saved = fx.save(&note, "Draft", &format!("version {i}"));
+        note.rev = saved.rev;
+    }
+    assert_eq!(fx.files(""), vec!["Draft.md"]);
+    assert!(fx.read("Draft.md").ends_with("version 19\n"));
+}
+
+#[test]
+fn external_modification_is_never_overwritten_silently() {
+    let mut fx = Fixture::new();
+    let note = fx.lib.create_note("", "Shared", "").unwrap();
+    let saved = fx.save(&note, "Shared", "mine v1");
+
+    // Another program edits the file.
+    let path = fx.path("Shared.md");
+    let edited = fx.read("Shared.md").replace("mine v1", "theirs");
+    fs::write(&path, edited).unwrap();
+
+    let err = fx
+        .lib
+        .save_note(SaveNoteInput {
+            id: note.summary.id.clone(),
+            title: "Shared".into(),
+            content: "mine v2".into(),
+            expected_rev: saved.rev.clone(),
+            force: false,
+        })
+        .unwrap_err();
+    assert!(matches!(err, AppError::Conflict(_)), "got {err:?}");
+    assert!(fx.read("Shared.md").contains("theirs"), "disk content must be untouched");
+
+    // Reloading shows their version; the user may then explicitly overwrite.
+    let reloaded = fx.lib.read_note(&note.summary.id).unwrap();
+    assert_eq!(reloaded.content, "theirs\n");
+    fx.lib
+        .save_note(SaveNoteInput {
+            id: note.summary.id.clone(),
+            title: "Shared".into(),
+            content: "mine v2".into(),
+            expected_rev: saved.rev,
+            force: true,
+        })
+        .unwrap();
+    assert!(fx.read("Shared.md").contains("mine v2"));
+}
+
+#[test]
+fn external_changes_are_picked_up_by_sync() {
+    let mut fx = Fixture::new();
+    let note = fx.lib.create_note("", "Log", "").unwrap();
+    fx.save(&note, "Log", "first");
+    let text = fx.read("Log.md").replace("first", "second entry with zebra");
+    fs::write(fx.path("Log.md"), text).unwrap();
+    // Also a brand-new file created by another program, and a deletion.
+    fs::write(fx.path("From vim.md"), "# From vim\n\nplain markdown\n").unwrap();
+
+    let report = fx.lib.sync_all(false).unwrap();
+    assert_eq!(report.updated, vec![note.summary.id.clone()]);
+    assert_eq!(report.added.len(), 1);
+    assert_eq!(search(&fx.lib, "zebra"), vec![note.summary.id.clone()]);
+
+    fs::remove_file(fx.path("Log.md")).unwrap();
+    let report = fx.lib.sync_all(false).unwrap();
+    assert_eq!(report.removed, vec![note.summary.id.clone()]);
+}
+
+#[test]
+fn indexing_never_modifies_files() {
+    let fx_dir = tempfile::tempdir().unwrap();
+    let plain = "# Plain\n\nNo frontmatter here.\n";
+    let custom = "---\ntags: [x]\n# comment\n---\nBody\n";
+    fs::write(fx_dir.path().join("Plain.md"), plain).unwrap();
+    fs::write(fx_dir.path().join("Custom.md"), custom).unwrap();
+    let (lib, _) = Library::open_with_memory_index(fx_dir.path()).unwrap();
+    assert_eq!(lib.list_notes().unwrap().len(), 2);
+    assert_eq!(fs::read_to_string(fx_dir.path().join("Plain.md")).unwrap(), plain);
+    assert_eq!(fs::read_to_string(fx_dir.path().join("Custom.md")).unwrap(), custom);
+}
+
+#[test]
+fn plain_markdown_files_keep_identity_and_other_frontmatter() {
+    let mut fx = Fixture::new();
+    fs::write(fx.path("Plain.md"), "Hello\n").unwrap();
+    fs::write(fx.path("Tagged.md"), "---\ntags:\n  - a\n  - b\naliases: [t]\n---\n\nTagged body\n").unwrap();
+    fx.lib.sync_all(false).unwrap();
+    let notes = fx.lib.list_notes().unwrap();
+    let plain = notes.iter().find(|n| n.title == "Plain").unwrap().clone();
+    let tagged = notes.iter().find(|n| n.title == "Tagged").unwrap().clone();
+
+    // Id is stable across syncs and restarts.
+    fx.lib.sync_all(true).unwrap();
+    fx.reopen();
+    assert!(fx.lib.list_notes().unwrap().iter().any(|n| n.id == plain.id));
+
+    // Editing through Linotes adds frontmatter but keeps the other keys.
+    let note = fx.lib.read_note(&tagged.id).unwrap();
+    fx.save(&note, "Tagged", "New body");
+    let text = fx.read("Tagged.md");
+    assert!(text.contains("tags:\n  - a\n  - b\n"), "{text}");
+    assert!(text.contains("aliases: [t]"));
+    assert!(text.contains(&format!("id: {}", tagged.id)));
+    assert!(text.ends_with("New body\n"));
+}
+
+#[test]
+fn copied_files_get_distinct_ids() {
+    let mut fx = Fixture::new();
+    let note = fx.lib.create_note("", "Original", "").unwrap();
+    fx.save(&note, "Original", "body");
+    fs::copy(fx.path("Original.md"), fx.path("Copy.md")).unwrap();
+    fx.lib.sync_all(false).unwrap();
+    let notes = fx.lib.list_notes().unwrap();
+    assert_eq!(notes.len(), 2);
+    assert_ne!(notes[0].id, notes[1].id);
+    let original = fx.lib.read_note(&note.summary.id).unwrap();
+    assert_eq!(original.summary.id, note.summary.id);
+    assert!(fx.path("Original.md").exists());
+}
+
+#[test]
+fn external_rename_keeps_note_identity() {
+    let mut fx = Fixture::new();
+    let note = fx.lib.create_note("", "Before", "").unwrap();
+    fs::rename(fx.path("Before.md"), fx.path("After.md")).unwrap();
+    let report = fx.lib.sync_all(false).unwrap();
+    assert!(report.removed.is_empty());
+    let loaded = fx.lib.read_note(&note.summary.id).unwrap();
+    assert!(loaded.path.ends_with("After.md"));
+}
+
+#[test]
+fn missing_file_is_reported_and_can_be_recreated() {
+    let mut fx = Fixture::new();
+    let note = fx.lib.create_note("", "Gone", "").unwrap();
+    fs::remove_file(fx.path("Gone.md")).unwrap();
+    assert!(matches!(fx.lib.read_note(&note.summary.id), Err(AppError::FileMissing(_))));
+    let input = SaveNoteInput {
+        id: note.summary.id.clone(),
+        title: "Gone".into(),
+        content: "rescued text".into(),
+        expected_rev: note.rev.clone(),
+        force: false,
+    };
+    assert!(matches!(fx.lib.save_note(input.clone()), Err(AppError::FileMissing(_))));
+    fx.lib.save_note(SaveNoteInput { force: true, ..input }).unwrap();
+    assert!(fx.read("Gone.md").contains("rescued text"));
+}
+
+#[test]
+fn folders_create_rename_and_delete() {
+    let mut fx = Fixture::new();
+    let work = fx.lib.create_folder("", "Work").unwrap();
+    assert_eq!(work.path, "Work");
+    let sub = fx.lib.create_folder("Work", "Projects").unwrap();
+    assert_eq!(sub.path, "Work/Projects");
+    assert!(matches!(fx.lib.create_folder("", "work"), Err(AppError::AlreadyExists(_))));
+    assert!(fx.lib.create_folder("", "../escape").is_ok_and(|f| f.path == "-escape"));
+    assert!(fx.lib.create_folder("../..", "x").is_err());
+
+    let note = fx.lib.create_note("Work/Projects", "Roadmap", "").unwrap();
+    fx.save(&note, "Roadmap", "milestones");
+
+    let renamed = fx.lib.rename_folder("Work", "Jobs").unwrap();
+    assert_eq!(renamed.path, "Jobs");
+    let moved = fx.lib.read_note(&note.summary.id).unwrap();
+    assert_eq!(moved.summary.folder, "Jobs/Projects");
+    assert_eq!(moved.content, "milestones\n");
+    let folders: Vec<String> = fx.lib.list_folders().unwrap().into_iter().map(|f| f.path).collect();
+    assert_eq!(folders, vec!["-escape", "Jobs", "Jobs/Projects"]);
+
+    let report = fx.lib.delete_folder("Jobs").unwrap();
+    assert_eq!(report.trashed_notes, 1);
+    assert!(report.removed);
+    assert!(!fx.path("Jobs").exists());
+    let trashed = fx.lib.read_note(&note.summary.id).unwrap();
+    assert!(trashed.summary.trashed);
+
+    // Restoring recreates the folder the note came from.
+    let restored = fx.lib.restore_note(&note.summary.id).unwrap();
+    assert_eq!(restored.folder, "Jobs/Projects");
+    assert!(fx.path("Jobs/Projects/Roadmap.md").exists());
+}
+
+#[test]
+fn deleting_a_folder_keeps_non_note_files() {
+    let mut fx = Fixture::new();
+    fx.lib.create_folder("", "Media").unwrap();
+    fs::write(fx.path("Media/photo.png"), [0u8, 1, 2]).unwrap();
+    let report = fx.lib.delete_folder("Media").unwrap();
+    assert!(!report.removed);
+    assert_eq!(report.remaining_files, vec!["Media/photo.png"]);
+    assert!(fx.path("Media/photo.png").exists());
+}
+
+#[test]
+fn moving_notes_between_folders_preserves_content() {
+    let mut fx = Fixture::new();
+    fx.lib.create_folder("", "A").unwrap();
+    fx.lib.create_folder("", "B").unwrap();
+    let note = fx.lib.create_note("A", "Travel", "").unwrap();
+    let saved = fx.save(&note, "Travel", "Passport, tickets");
+    fs::write(fx.path("B/Travel.md"), "someone else's note").unwrap();
+    fx.lib.sync_all(false).unwrap();
+
+    let moved = fx.lib.move_note(&note.summary.id, "B").unwrap();
+    assert_eq!(moved.folder, "B");
+    assert_eq!(fx.files("B"), vec!["Travel 2.md", "Travel.md"]);
+    assert_eq!(fx.read("B/Travel.md"), "someone else's note");
+    let loaded = fx.lib.read_note(&note.summary.id).unwrap();
+    assert_eq!(loaded.content, "Passport, tickets\n");
+    assert_eq!(loaded.rev, saved.rev, "moving must not change the revision");
+    assert!(fx.lib.move_note(&note.summary.id, "../outside").is_err());
+    assert!(fx.lib.move_note(&note.summary.id, "Missing").is_err());
+}
+
+#[test]
+fn trash_restore_and_permanent_delete() {
+    let mut fx = Fixture::new();
+    fx.lib.create_folder("", "Ideas").unwrap();
+    let note = fx.lib.create_note("Ideas", "Startup", "").unwrap();
+    fx.save(&note, "Startup", "secret plan");
+
+    let trashed = fx.lib.trash_note(&note.summary.id).unwrap();
+    assert!(trashed.trashed && trashed.trashed_at.is_some());
+    assert_eq!(trashed.folder, "Ideas");
+    assert!(fx.files("Ideas").is_empty());
+    assert!(fx.path(".trash/Startup.md").exists());
+    assert!(fx.read(".trash/Startup.md").contains("trashed_from: Ideas"));
+    assert!(search(&fx.lib, "secret").is_empty(), "trashed notes are hidden from normal search");
+
+    // Trash state survives an index rebuild.
+    fx.reopen();
+    let trashed = fx.lib.read_note(&note.summary.id).unwrap();
+    assert!(trashed.summary.trashed);
+    assert_eq!(trashed.summary.folder, "Ideas");
+    assert!(
+        fx.lib
+            .save_note(SaveNoteInput {
+                id: note.summary.id.clone(),
+                title: "x".into(),
+                content: "x".into(),
+                expected_rev: trashed.rev.clone(),
+                force: false
+            })
+            .is_err()
+    );
+
+    let restored = fx.lib.restore_note(&note.summary.id).unwrap();
+    assert!(!restored.trashed);
+    assert_eq!(fx.files("Ideas"), vec!["Startup.md"]);
+    assert!(!fx.read("Ideas/Startup.md").contains("trashed_from"));
+
+    // Permanent deletion requires the note to be in the trash first.
+    assert!(fx.lib.delete_note_permanently(&note.summary.id).is_err());
+    fx.lib.trash_note(&note.summary.id).unwrap();
+    fx.lib.delete_note_permanently(&note.summary.id).unwrap();
+    assert!(!fx.path(".trash/Startup.md").exists());
+    assert!(matches!(fx.lib.read_note(&note.summary.id), Err(AppError::NotFound(_))));
+}
+
+#[test]
+fn empty_trash_deletes_only_trashed_notes() {
+    let mut fx = Fixture::new();
+    let keep = fx.lib.create_note("", "Keep", "").unwrap();
+    let a = fx.lib.create_note("", "A", "").unwrap();
+    let b = fx.lib.create_note("", "B", "").unwrap();
+    fx.lib.trash_note(&a.summary.id).unwrap();
+    fx.lib.trash_note(&b.summary.id).unwrap();
+    assert_eq!(fx.lib.empty_trash().unwrap(), 2);
+    let ids: Vec<String> = fx.lib.list_notes().unwrap().into_iter().map(|n| n.id).collect();
+    assert_eq!(ids, vec![keep.summary.id]);
+}
+
+#[test]
+fn favorites_are_stored_in_the_file() {
+    let mut fx = Fixture::new();
+    let note = fx.lib.create_note("", "Star", "").unwrap();
+    let saved = fx.save(&note, "Star", "body");
+    let fav = fx.lib.set_favorite(&note.summary.id, true).unwrap();
+    assert!(fav.favorite);
+    assert!(fx.read("Star.md").contains("favorite: true"));
+    // The editor's revision stays valid after a metadata-only change.
+    let resaved = fx.lib.save_note(SaveNoteInput {
+        id: note.summary.id.clone(),
+        title: "Star".into(),
+        content: "body 2".into(),
+        expected_rev: saved.rev,
+        force: false,
+    });
+    assert!(resaved.is_ok());
+    fx.reopen();
+    assert!(fx.lib.read_note(&note.summary.id).unwrap().summary.favorite);
+    fx.lib.set_favorite(&note.summary.id, false).unwrap();
+    assert!(!fx.read("Star.md").contains("favorite"));
+}
+
+#[test]
+fn search_reflects_saves() {
+    let mut fx = Fixture::new();
+    let note = fx.lib.create_note("", "Recipes", "").unwrap();
+    assert!(search(&fx.lib, "lasagna").is_empty());
+    fx.save(&note, "Recipes", "Grandma's lasagna");
+    assert_eq!(search(&fx.lib, "lasag"), vec![note.summary.id.clone()]);
+    assert_eq!(search(&fx.lib, "recipes"), vec![note.summary.id]);
+}
+
+#[test]
+fn invalid_utf8_files_are_skipped_not_touched() {
+    let mut fx = Fixture::new();
+    let bytes = [b'#', b' ', 0xff, 0xfe, b'\n'];
+    fs::write(fx.path("Binary.md"), bytes).unwrap();
+    let report = fx.lib.sync_all(false).unwrap();
+    assert_eq!(report.skipped.len(), 1);
+    assert!(report.skipped[0].reason.contains("UTF-8"));
+    assert_eq!(fs::read(fx.path("Binary.md")).unwrap(), bytes);
+}
+
+#[test]
+fn hidden_and_temporary_files_are_ignored() {
+    let mut fx = Fixture::new();
+    fs::create_dir(fx.path(".git")).unwrap();
+    fs::write(fx.path(".git/README.md"), "not a note").unwrap();
+    fs::write(fx.path(".hidden.md"), "not a note").unwrap();
+    fs::write(fx.path(".Note.md.linotes-tmp-abc"), "temp").unwrap();
+    fs::write(fx.path("notes.txt"), "text file").unwrap();
+    fx.lib.sync_all(false).unwrap();
+    assert!(fx.lib.list_notes().unwrap().is_empty());
+    assert!(fx.lib.list_folders().unwrap().is_empty());
+}
+
+#[test]
+fn index_is_rebuilt_from_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let index_dir = tempfile::tempdir().unwrap();
+    let recovery_dir = tempfile::tempdir().unwrap();
+    let (mut lib, _) = Library::open(dir.path(), true, index_dir.path(), recovery_dir.path()).unwrap();
+    let note = lib.create_note("", "Durable", "").unwrap();
+    lib.set_favorite(&note.summary.id, true).unwrap();
+    drop(lib);
+
+    // Destroy the index entirely.
+    for entry in fs::read_dir(index_dir.path()).unwrap() {
+        fs::write(entry.unwrap().path(), b"garbage").unwrap();
+    }
+    let (lib, report) = Library::open(dir.path(), true, index_dir.path(), recovery_dir.path()).unwrap();
+    assert!(report.replaced_corrupt_index.is_some());
+    let notes = lib.list_notes().unwrap();
+    assert_eq!(notes.len(), 1);
+    assert_eq!(notes[0].id, note.summary.id);
+    assert!(notes[0].favorite, "metadata lives in the file, so nothing is lost");
+}
+
+#[test]
+fn unavailable_custom_folder_is_not_created() {
+    let base = tempfile::tempdir().unwrap();
+    let missing = base.path().join("unplugged-drive/notes");
+    let result = Library::open(&missing, false, base.path(), base.path());
+    assert!(matches!(result, Err(AppError::Unavailable(_))));
+    assert!(!missing.exists());
+}
+
+#[test]
+fn import_files_and_folders() {
+    let mut fx = Fixture::new();
+    let src = tempfile::tempdir().unwrap();
+    let s = src.path();
+    fs::create_dir_all(s.join("Project/Sub dir")).unwrap();
+    fs::create_dir_all(s.join("Project/.obsidian")).unwrap();
+    fs::write(s.join("Project/Readme.md"), "# Readme\n").unwrap();
+    fs::write(s.join("Project/Sub dir/Deep.markdown"), "deep text").unwrap();
+    fs::write(s.join("Project/Sub dir/image.png"), [1u8, 2, 3]).unwrap();
+    fs::write(s.join("Project/bad.md"), [0xffu8, 0x00]).unwrap();
+    fs::write(s.join("Project/.obsidian/config.md"), "hidden").unwrap();
+    std::os::unix::fs::symlink("/etc/passwd", s.join("Project/link.md")).unwrap();
+
+    let report = fx.lib.import_directory(&s.join("Project"), "").unwrap();
+    assert_eq!(report.folder.as_deref(), Some("Project"));
+    let mut titles: Vec<&str> = report.imported.iter().map(|n| n.title.as_str()).collect();
+    titles.sort();
+    assert_eq!(titles, vec!["Deep", "Readme"]);
+    assert_eq!(report.failed.len(), 1, "{:?}", report.failed);
+    assert!(report.failed[0].reason.contains("UTF-8"));
+    let skipped: Vec<&str> = report.skipped.iter().map(|i| i.reason.as_str()).collect();
+    assert_eq!(skipped.len(), 2, "{skipped:?}");
+    assert!(fx.path("Project/Sub dir/Deep.md").exists());
+    assert!(!fx.path("Project/.obsidian").exists());
+    assert!(!fx.path("Project/link.md").exists());
+
+    // Importing the same folder again creates a separate copy.
+    let again = fx.lib.import_directory(&s.join("Project"), "").unwrap();
+    assert_eq!(again.folder.as_deref(), Some("Project 2"));
+
+    // Single files, including a duplicate id and a rejected extension.
+    fx.lib.create_folder("", "Inbox").unwrap();
+    let exported_id = report.imported[0].id.clone();
+    let with_id = s.join("With id.md");
+    fs::write(&with_id, format!("---\nid: {exported_id}\n---\nx\n")).unwrap();
+    fs::write(s.join("script.sh"), "echo hi").unwrap();
+    let files = fx.lib.import_files(&[with_id, s.join("script.sh"), s.join("missing.md")], "Inbox").unwrap();
+    assert_eq!(files.imported.len(), 1);
+    assert_ne!(files.imported[0].id, exported_id, "duplicate ids are replaced");
+    assert_eq!(files.failed.len(), 2);
+}
+
+#[test]
+fn import_refuses_recursive_sources() {
+    let mut fx = Fixture::new();
+    let root = fx.root();
+    assert!(fx.lib.import_directory(&root, "").is_err());
+    let parent = root.parent().unwrap().to_path_buf();
+    assert!(fx.lib.import_directory(&parent, "").is_err());
+}
+
+#[test]
+fn export_note_and_zip_preserve_structure() {
+    let mut fx = Fixture::new();
+    fx.lib.create_folder("", "Work").unwrap();
+    fx.lib.create_folder("Work", "Empty").unwrap();
+    let a = fx.lib.create_note("Work", "Alpha", "").unwrap();
+    fx.save(&a, "Alpha", "alpha body");
+    let b = fx.lib.create_note("", "Beta", "").unwrap();
+    fx.lib.trash_note(&b.summary.id).unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    let single = out.path().join("alpha.md");
+    fx.lib.export_note(&a.summary.id, &single).unwrap();
+    assert_eq!(fs::read_to_string(&single).unwrap(), fx.read("Work/Alpha.md"));
+
+    let zip_path = out.path().join("all.zip");
+    let report = fx.lib.export_zip(None, &zip_path).unwrap();
+    assert_eq!(report.files, 1, "trash is excluded");
+    let names = zip_names(&zip_path);
+    assert!(names.contains(&"Linotes/Work/Alpha.md".to_string()), "{names:?}");
+    assert!(names.contains(&"Linotes/Work/Empty/".to_string()), "{names:?}");
+    assert!(!names.iter().any(|n| n.contains(".trash")));
+
+    let folder_zip = out.path().join("work.zip");
+    fx.lib.export_zip(Some("Work"), &folder_zip).unwrap();
+    let names = zip_names(&folder_zip);
+    assert!(names.contains(&"Work/Alpha.md".to_string()), "{names:?}");
+    let mut archive = zip::ZipArchive::new(fs::File::open(&folder_zip).unwrap()).unwrap();
+    let mut entry = archive.by_name("Work/Alpha.md").unwrap();
+    let mut text = String::new();
+    std::io::Read::read_to_string(&mut entry, &mut text).unwrap();
+    assert!(text.contains("alpha body"));
+    assert!(fx.lib.export_zip(Some("../x"), &folder_zip).is_err());
+    assert!(!leftover_temp_files(out.path()));
+}
+
+fn zip_names(path: &Path) -> Vec<String> {
+    let archive = zip::ZipArchive::new(fs::File::open(path).unwrap()).unwrap();
+    archive.file_names().map(String::from).collect()
+}
+
+fn leftover_temp_files(dir: &Path) -> bool {
+    fs::read_dir(dir).unwrap().filter_map(|e| e.ok()).any(|e| crate::filesystem::atomic::is_temp_file(&e.path()))
+}

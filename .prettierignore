@@ -1,0 +1,11 @@
+dist
+node_modules
+src-tauri/target
+src-tauri/gen
+package-lock.json
+playwright-report
+test-results
+*.md
+# Desktop entry templates are not HTML; Prettier's Handlebars parser would reflow them.
+*.hbs
+flatpak/*.desktop

@@ -1,0 +1,42 @@
+# Flatpak manifest (DRAFT — see flatpak/README.md).
+#
+# Repackages the .deb produced by `npm run tauri build`. A Flathub submission
+# must instead build from source with vendored Cargo and npm dependencies
+# (flatpak-builder-tools: flatpak-cargo-generator / flatpak-node-generator).
+id: io.github.arlkn.Linotes
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+command: linotes
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  # The default notes folder. Other folders are granted through the file chooser portal.
+  - --filesystem=xdg-documents/Linotes:create
+  # No --share=network: Linotes does not need the network.
+modules:
+  - name: linotes
+    buildsystem: simple
+    sources:
+      - type: file
+        path: ../src-tauri/target/release/bundle/deb/Linotes_0.1.0_amd64.deb
+        dest-filename: linotes.deb
+      - type: file
+        path: io.github.arlkn.Linotes.desktop
+      - type: file
+        path: io.github.arlkn.Linotes.metainfo.xml
+    build-commands:
+      - ar -x linotes.deb
+      - tar -xf data.tar.*
+      - install -Dm755 usr/bin/linotes /app/bin/linotes
+      - install -Dm644 io.github.arlkn.Linotes.desktop /app/share/applications/io.github.arlkn.Linotes.desktop
+      - install -Dm644 io.github.arlkn.Linotes.metainfo.xml /app/share/metainfo/io.github.arlkn.Linotes.metainfo.xml
+      - |
+        for size in 32x32 64x64 128x128 256x256@2 512x512; do
+          src="usr/share/icons/hicolor/${size}/apps/linotes.png"
+          if [ -f "$src" ]; then
+            install -Dm644 "$src" "/app/share/icons/hicolor/${size%@2}/apps/io.github.arlkn.Linotes.png"
+          fi
+        done

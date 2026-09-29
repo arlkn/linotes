@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata (shown in GNOME Software and on Flathub). -->
+<component type="desktop-application">
+  <id>io.github.arlkn.Linotes</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Linotes</name>
+  <summary>Local-first Markdown notes</summary>
+  <developer id="io.github.arlkn">
+    <name>Aral Alkan and Linotes contributors</name>
+  </developer>
+  <description>
+    <p>
+      Linotes is a fast, private notes app. Your notes are plain Markdown files in a folder you
+      choose — no account, no cloud, no telemetry.
+    </p>
+    <ul>
+      <li>Rich text editing with checklists, code blocks and links, or plain Markdown</li>
+      <li>Folders, favorites, recently edited notes and a Trash with restore</li>
+      <li>Instant full-text search</li>
+      <li>Changes made by other apps and sync tools appear live, without overwriting your work</li>
+      <li>Import and export Markdown, or back up by copying a folder</li>
+      <li>Light and dark styles and full keyboard control</li>
+    </ul>
+  </description>
+  <url type="homepage">https://github.com/arlkn/linotes</url>
+  <url type="bugtracker">https://github.com/arlkn/linotes/issues</url>
+  <url type="vcs-browser">https://github.com/arlkn/linotes</url>
+  <url type="contribute">https://github.com/arlkn/linotes/blob/main/CONTRIBUTING.md</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Writing notes in light mode</caption>
+      <image>https://raw.githubusercontent.com/arlkn/linotes/main/docs/screenshots/linotes-light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Dark mode</caption>
+      <image>https://raw.githubusercontent.com/arlkn/linotes/main/docs/screenshots/linotes-dark.png</image>
+    </screenshot>
+  </screenshots>
+  <launchable type="desktop-id">io.github.arlkn.Linotes.desktop</launchable>
+  <categories>
+    <category>Office</category>
+  </categories>
+  <keywords>
+    <keyword>notes</keyword>
+    <keyword>markdown</keyword>
+    <keyword>notebook</keyword>
+    <keyword>journal</keyword>
+  </keywords>
+  <content_rating type="oars-1.1" />
+  <requires>
+    <display_length compare="ge">720</display_length>
+  </requires>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <branding>
+    <color type="primary" scheme_preference="light">#f7c9b5</color>
+    <color type="primary" scheme_preference="dark">#7a2e12</color>
+  </branding>
+  <releases>
+    <release version="0.1.0" type="development" date="2026-09-29" />
+  </releases>
+</component>
