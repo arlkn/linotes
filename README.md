@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/linotes-icon.png" width="128" height="128" alt="Linotes — a penguin writing a note">
+<a href="https://snapcraft.io/linotes"><img src="assets/linotes-icon.png" width="128" height="128" alt="Linotes — a penguin writing a note. Get it from the Snap Store"></a>
 
 # Linotes
 
@@ -78,6 +78,8 @@ the Linux desktop. Linotes takes a different path:
 Linotes runs on 64-bit x86 Linux (Ubuntu 22.04+, Debian 12+, Fedora 38+ or similar).
 
 ### Snap Store (recommended)
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/linotes)
 
 ```bash
 sudo snap install linotes
