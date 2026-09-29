@@ -14,6 +14,7 @@ import type {
   Settings,
   SettingsPatch,
   SyncReport,
+  ThemePreference,
 } from '@/types/domain';
 
 export type Unlisten = () => void;
@@ -64,6 +65,11 @@ export interface Backend {
   appReady(): Promise<void>;
   getAppInfo(): Promise<AppInfo>;
   openExternalUrl(url: string): Promise<void>;
+  /**
+   * Match the window frame (title bar) to the theme and return the theme to show.
+   * For `system` the desktop's own preference wins; `fallback` is used without one.
+   */
+  applyWindowTheme(preference: ThemePreference, fallback: 'light' | 'dark'): Promise<'light' | 'dark'>;
   confirmClose(): Promise<void>;
   cancelClose(): Promise<void>;
 

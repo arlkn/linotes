@@ -2164,6 +2164,7 @@ name = "linotes"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "dbus",
  "dirs",
  "log",
  "notify",

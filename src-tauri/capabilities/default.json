@@ -38,6 +38,7 @@
     "allow-app-ready",
     "allow-get-app-info",
     "allow-open-external-url",
+    "allow-apply-window-theme",
     "allow-confirm-close",
     "allow-cancel-close"
   ]

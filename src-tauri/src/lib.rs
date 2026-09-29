@@ -8,6 +8,7 @@
 
 mod commands;
 mod database;
+mod desktop;
 mod error;
 mod filesystem;
 mod import_export;
@@ -118,6 +119,7 @@ pub fn run() {
             commands::app::app_ready,
             commands::app::get_app_info,
             commands::app::open_external_url,
+            commands::app::apply_window_theme,
             commands::app::confirm_close,
             commands::app::cancel_close,
         ])

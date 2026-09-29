@@ -33,6 +33,7 @@ const COMMANDS: &[&str] = &[
     "app_ready",
     "get_app_info",
     "open_external_url",
+    "apply_window_theme",
     "confirm_close",
     "cancel_close",
 ];

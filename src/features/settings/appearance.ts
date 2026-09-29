@@ -1,3 +1,4 @@
+import { getBackend } from '@/lib/backend';
 import type { Accent, Settings } from '@/types/domain';
 
 export const ACCENT_COLORS: Record<Accent, { color: string; strong: string; label: string }> = {
@@ -22,12 +23,32 @@ export function resolveTheme(preference: Settings['theme']): 'light' | 'dark' {
   return darkQuery().matches ? 'dark' : 'light';
 }
 
+let themeRequest = 0;
+
+/**
+ * Match the window frame (GTK title bar) to the interface. The backend resolves
+ * "system" from the desktop's own preference, which is more reliable than the
+ * web view's guess, and the answer becomes the interface theme too.
+ */
+function syncWindowTheme(preference: Settings['theme']): void {
+  const request = ++themeRequest;
+  getBackend()
+    .applyWindowTheme(preference, resolveTheme(preference))
+    .then((theme) => {
+      if (request === themeRequest) document.documentElement.dataset.theme = theme;
+    })
+    .catch(() => {
+      // Keep the web view's guess; the window frame keeps its current theme.
+    });
+}
+
 /** Apply theme, accent, zoom and editor size to the document root. */
 export function applyAppearance(
   settings: Pick<Settings, 'theme' | 'accent' | 'uiZoom' | 'editorFontSize'>,
 ): void {
   const root = document.documentElement;
   root.dataset.theme = resolveTheme(settings.theme);
+  syncWindowTheme(settings.theme);
   const accent = ACCENT_COLORS[settings.accent] ?? ACCENT_COLORS.orange;
   root.style.setProperty('--ln-accent', accent.color);
   root.style.setProperty('--ln-accent-strong', accent.strong);

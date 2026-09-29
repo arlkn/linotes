@@ -455,6 +455,9 @@ export function createMemoryBackend(options: MemoryBackendOptions = {}): MemoryB
     async openExternalUrl(url) {
       window.open(url, '_blank', 'noopener,noreferrer');
     },
+    async applyWindowTheme(preference, fallback) {
+      return preference === 'system' ? fallback : preference;
+    },
     async confirmClose() {},
     async cancelClose() {},
 

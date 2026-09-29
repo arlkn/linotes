@@ -3,7 +3,7 @@ use crate::security;
 use crate::state::{AppState, lock};
 use serde::Serialize;
 use std::sync::atomic::Ordering;
-use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::{AppHandle, Manager, Theme, WebviewWindow};
 use tauri_plugin_opener::OpenerExt;
 
 #[derive(Debug, Clone, Serialize)]
@@ -45,6 +45,26 @@ pub fn get_app_info(app: AppHandle) -> AppInfo {
 pub fn open_external_url(app: AppHandle, url: String) -> AppResult<()> {
     security::validate_external_url(&url)?;
     app.opener().open_url(url, None::<&str>).map_err(|e| AppError::Internal(format!("Could not open the link: {e}")))
+}
+
+/// Match the window frame (the title bar drawn by GTK) to the theme the interface
+/// shows, and return that theme. For `system`, the desktop's own preference from
+/// the XDG portal wins; `fallback` (the web view's guess) is used without a portal.
+#[tauri::command]
+pub async fn apply_window_theme(window: WebviewWindow, preference: String, fallback: String) -> AppResult<String> {
+    super::blocking(move || {
+        let theme = match preference.as_str() {
+            "dark" => Theme::Dark,
+            "light" => Theme::Light,
+            "system" => {
+                crate::desktop::system_theme().unwrap_or(if fallback == "dark" { Theme::Dark } else { Theme::Light })
+            }
+            _ => return Err(AppError::invalid("Unknown theme")),
+        };
+        window.set_theme(Some(theme)).map_err(|e| AppError::Internal(e.to_string()))?;
+        Ok(if theme == Theme::Dark { "dark" } else { "light" }.to_string())
+    })
+    .await
 }
 
 /// The frontend finished saving after a close request; close the window.

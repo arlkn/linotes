@@ -39,6 +39,10 @@ sha2 = "0.11"
 dirs = "7.0"
 yaml-rust2 = "0.13"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# Already used by Tauri's window layer; reads the desktop's light/dark preference.
+dbus = "0.9"
+
 [dev-dependencies]
 tempfile = "3.27"
 

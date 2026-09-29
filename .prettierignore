@@ -9,3 +9,5 @@ test-results
 # Desktop entry templates are not HTML; Prettier's Handlebars parser would reflow them.
 *.hbs
 flatpak/*.desktop
+.flatpak-build-dir
+.flatpak-builder

@@ -54,6 +54,7 @@ export function createTauriBackend(): Backend {
     appReady: () => call('app_ready'),
     getAppInfo: () => call('get_app_info'),
     openExternalUrl: (url) => call('open_external_url', { url }),
+    applyWindowTheme: (preference, fallback) => call('apply_window_theme', { preference, fallback }),
     confirmClose: () => call('confirm_close'),
     cancelClose: () => call('cancel_close'),
 
