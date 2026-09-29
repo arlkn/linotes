@@ -43,23 +43,11 @@ apps:
     plugs:
       - home # ~/Documents/Linotes (Linotes uses $SNAP_REAL_HOME)
       - removable-media # notes folders on external drives
-      - single-instance-plug
-    slots:
-      - single-instance
 
-# A second launch hands over to the running window over D-Bus
-# (tauri-plugin-single-instance registers "<identifier>.SingleInstance").
-slots:
-  single-instance:
-    interface: dbus
-    bus: session
-    name: io.github.arlkn.Linotes.SingleInstance
-
-plugs:
-  single-instance-plug:
-    interface: dbus
-    bus: session
-    name: io.github.arlkn.Linotes.SingleInstance
+# No D-Bus slot for tauri-plugin-single-instance: the Snap Store holds snaps that
+# connect to their own D-Bus name for manual review. Without it the plugin cannot
+# register, so each launch opens its own window (safe: the index is shared through
+# SQLite WAL and note saves detect conflicts).
 
 parts:
   linotes:

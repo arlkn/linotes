@@ -108,8 +108,9 @@ About the snap:
 - The `home` interface gives access to `~/Documents/Linotes`; Linotes detects `SNAP_REAL_HOME`, so
   notes live in your real home folder, not inside the snap. Notes folders on external drives need
   `sudo snap connect linotes:removable-media`.
-- A D-Bus slot for `io.github.arlkn.Linotes.SingleInstance` lets a second launch bring the running
-  window to the front instead of opening another copy.
+- The snap has no D-Bus slot for the single-instance plugin, because the Snap Store holds snaps
+  that connect to their own D-Bus name for manual review (a forum request in *store-requests* can
+  grant it). Without it, launching Linotes twice opens a second window.
 
 ## AUR
 
