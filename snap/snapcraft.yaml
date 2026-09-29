@@ -36,6 +36,10 @@ apps:
     common-id: io.github.arlkn.Linotes
     # The GNOME runtime provides GTK and WebKitGTK, so they are not bundled.
     extensions: [gnome]
+    environment:
+      # WebKit polls /proc/zoneinfo every few seconds, which confinement denies,
+      # filling the system log with AppArmor messages.
+      WEBKIT_DISABLE_MEMORY_PRESSURE_MONITOR: '1'
     plugs:
       - home # ~/Documents/Linotes (Linotes uses $SNAP_REAL_HOME)
       - removable-media # notes folders on external drives
