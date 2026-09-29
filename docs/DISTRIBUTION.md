@@ -7,7 +7,7 @@ How Linotes gets to users, and the plan for the channels that are not set up yet
 | GitHub Releases (`.deb`, `.rpm`, AppImage) | Everyone, manual install | Live — tag `vX.Y.Z` and the release workflow builds a draft release |
 | **APT repository** (`sudo apt install linotes`) | Ubuntu, Debian, Mint, Pop!_OS, elementary, … | Live — updated automatically when a release is published ([see below](#apt-repository)) |
 | **Flathub** | GNOME Software, KDE Discover, Fedora, Mint, elementary, … | Not submitted — needs a manifest written by a person ([see below](#flathub)) |
-| **Snap Store** (`sudo snap install linotes`) | Ubuntu App Center | Name registered; the next published release is uploaded automatically ([see below](#snap-store)) |
+| **Snap Store** (`sudo snap install linotes`) | Ubuntu App Center | Live at [snapcraft.io/linotes](https://snapcraft.io/linotes) — each published release is uploaded automatically ([see below](#snap-store)) |
 | AUR (`linotes-bin`) | Arch Linux, Manjaro, EndeavourOS | Planned (PKGBUILD repackaging the release `.deb`) |
 | AppImageHub | AppImage users | Planned |
 

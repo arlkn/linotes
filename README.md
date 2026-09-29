@@ -14,6 +14,8 @@ Your notes are plain Markdown files in a folder you choose — no account, no cl
 ![Platform: Linux](https://img.shields.io/badge/platform-Linux-333.svg)
 ![Made with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-24C8DB.svg)
 
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/linotes)
+
 </div>
 
 <p align="center">
@@ -76,9 +78,15 @@ the Linux desktop. Linotes takes a different path:
 Linotes runs on 64-bit x86 Linux with WebKitGTK 4.1 (Ubuntu 22.04+, Debian 12+, Fedora 38+ or
 similar). Open a terminal and run the commands for your distribution.
 
-**Ubuntu, Debian, Linux Mint, Pop!_OS**
+**Ubuntu, or any distribution with Snap** — from the [Snap Store](https://snapcraft.io/linotes),
+updated automatically:
 
-Add the Linotes repository once, then install. New versions arrive with your normal system updates.
+```bash
+sudo snap install linotes
+```
+
+**Ubuntu, Debian, Linux Mint, Pop!_OS (APT)** — add the Linotes repository once, then install.
+New versions arrive with your normal system updates.
 
 ```bash
 sudo curl -fsSLo /etc/apt/sources.list.d/linotes.sources https://arlkn.github.io/linotes/linotes.sources
@@ -121,12 +129,12 @@ wget https://github.com/arlkn/linotes/releases/download/v0.1.1/SHA256SUMS
 sha256sum --check --ignore-missing SHA256SUMS
 ```
 
-To uninstall: `sudo apt remove linotes` (and `sudo rm /etc/apt/sources.list.d/linotes.sources` to
+To uninstall: `sudo snap remove linotes`, `sudo apt remove linotes` (and `sudo rm /etc/apt/sources.list.d/linotes.sources` to
 remove the repository), `sudo dnf remove linotes` or `sudo zypper remove linotes`, or delete the
 AppImage. Your notes stay in `~/Documents/Linotes`.
 
-A Snap Store package is on its way and Flathub is planned — see
-[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). You can also [build from source](#building-from-source).
+Linotes is not on Flathub yet — see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). You can also
+[build from source](#building-from-source).
 
 ## Building from source
 
