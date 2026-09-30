@@ -24,6 +24,23 @@ pub fn theme_name(theme: Theme) -> &'static str {
     if theme == Theme::Dark { "dark" } else { "light" }
 }
 
+/// Runs before the page's own scripts (at document start), so even WebKit's
+/// first paint uses the saved theme instead of the light defaults in the CSS.
+/// `src/main.tsx` reads `__LINOTES_THEME__` too.
+pub fn theme_script(theme: Theme) -> String {
+    let name = theme_name(theme);
+    format!(
+        "window.__LINOTES_THEME__ = '{name}';\n\
+         (function () {{\n\
+           var apply = function () {{ document.documentElement.dataset.theme = '{name}'; }};\n\
+           if (document.documentElement) {{ apply(); return; }}\n\
+           new MutationObserver(function (_, observer) {{\n\
+             if (document.documentElement) {{ apply(); observer.disconnect(); }}\n\
+           }}).observe(document, {{ childList: true }});\n\
+         }})();"
+    )
+}
+
 /// The desktop's light/dark preference, read from the XDG settings portal
 /// (`org.freedesktop.appearance` → `color-scheme`). This works on the host and
 /// inside Flatpak and Snap sandboxes. `None` means the desktop states no
@@ -86,6 +103,14 @@ mod tests {
         assert_eq!(initial_theme(ThemePreference::Dark), Theme::Dark);
         assert_eq!(theme_name(Theme::Dark), "dark");
         assert_eq!(theme_name(Theme::Light), "light");
+    }
+
+    #[test]
+    fn theme_script_sets_the_page_theme() {
+        let script = theme_script(Theme::Dark);
+        assert!(script.contains("window.__LINOTES_THEME__ = 'dark';"));
+        assert!(script.contains("dataset.theme = 'dark'"));
+        assert!(theme_script(Theme::Light).contains("dataset.theme = 'light'"));
     }
 
     #[test]

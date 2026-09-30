@@ -148,8 +148,7 @@ fn create_main_window(
         .visible(false)
         .theme(Some(theme))
         .background_color(desktop::background_color(theme))
-        // Read by src/main.tsx so the first paint already uses the right theme.
-        .initialization_script(format!("window.__LINOTES_THEME__ = '{}';", desktop::theme_name(theme)))
+        .initialization_script(desktop::theme_script(theme))
         .disable_drag_drop_handler()
         .on_navigation(move |url| {
             let allowed = security::is_app_url(url, dev_url.as_ref());

@@ -6,8 +6,8 @@ import './styles/globals.css';
 
 installErrorReporting();
 
-// The desktop app opens its window in the saved theme (create_main_window in
-// src-tauri/src/lib.rs); use that until the settings load, so nothing flashes.
+// In the desktop app a startup script has already applied the saved theme
+// (theme_script in src-tauri/src/desktop.rs); the browser preview follows the system.
 const initialTheme = (window as Window & { __LINOTES_THEME__?: string }).__LINOTES_THEME__;
 document.documentElement.dataset.theme =
   initialTheme ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
