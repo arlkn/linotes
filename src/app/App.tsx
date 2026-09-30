@@ -13,6 +13,8 @@ import { useGlobalShortcuts } from '@/hooks/use-global-shortcuts';
 import { LibraryUnavailable } from './library-unavailable';
 
 let started: Promise<void> | null = null;
+/** The desktop app keeps its loading screen up at least this long, so the logo shows instead of flashing. */
+const SPLASH_MIN_MS = 700;
 
 /** Keep the webview from navigating away and from showing its own context menu on UI chrome. */
 function useWebviewGuards() {
@@ -51,8 +53,14 @@ export function App() {
   useWebviewGuards();
 
   useEffect(() => {
+    const shownAt = performance.now();
+    const minimum = getBackend().kind === 'tauri' ? SPLASH_MIN_MS : 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     started ??= bootstrap();
-    void started.finally(() => setReady(true));
+    void started.finally(() => {
+      timer = setTimeout(() => setReady(true), Math.max(0, minimum - (performance.now() - shownAt)));
+    });
+    return () => clearTimeout(timer);
   }, []);
 
   return (
