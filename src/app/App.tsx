@@ -62,7 +62,10 @@ export function App() {
         <div className="min-h-0 flex-1">
           {!ready ? (
             <div className="flex h-full items-center justify-center bg-app">
-              <Logo size={3.5} className="animate-splash" />
+              <div className="flex animate-splash flex-col items-center gap-3">
+                <Logo size={7} />
+                <span className="text-base font-semibold tracking-tight">Linotes</span>
+              </div>
             </div>
           ) : (
             <div className="h-full animate-fade-in">
