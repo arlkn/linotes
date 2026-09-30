@@ -33,7 +33,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav aria-label="Library" className="flex h-full flex-col bg-sidebar" onKeyDown={onNavKeyDown}>
       <header className="flex h-[3.25rem] shrink-0 items-center gap-2.5 px-4">
-        <Logo className="size-7" />
+        <Logo size={1.75} />
         <span className="text-[0.95rem] font-semibold tracking-tight">Linotes</span>
       </header>
 

@@ -20,7 +20,7 @@ export function AboutSection() {
   return (
     <>
       <div className="mb-7 flex flex-col items-center pt-2 text-center">
-        <Logo className="size-20" />
+        <Logo size={5} />
         <h3 className="mt-3 text-xl font-bold tracking-tight">Linotes</h3>
         <p className="mt-1 text-sm text-muted">{TAGLINE}</p>
         <p className="mt-2 rounded-full bg-hover px-2.5 py-0.5 text-xs tabular-nums">

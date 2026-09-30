@@ -62,12 +62,12 @@ export function App() {
         <div className="min-h-0 flex-1">
           {!ready ? (
             <div className="flex h-full items-center justify-center bg-app">
-              <Logo className="size-14 animate-pulse" />
+              <Logo size={3.5} className="animate-splash" />
             </div>
-          ) : status && !status.ready ? (
-            <LibraryUnavailable status={status} />
           ) : (
-            <AppShell />
+            <div className="h-full animate-fade-in">
+              {status && !status.ready ? <LibraryUnavailable status={status} /> : <AppShell />}
+            </div>
           )}
         </div>
       </div>

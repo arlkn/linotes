@@ -67,7 +67,10 @@ pub fn run() {
                 let settings = lock(&state.settings);
                 (settings.window.clone(), desktop::initial_theme(settings.theme))
             };
-            create_main_window(app, &geometry, theme)?;
+            // Shown only now: tao applies the background colour through a queued
+            // request, so showing the window at creation painted it white first.
+            // It is hidden for a moment only, before the page has started loading.
+            create_main_window(app, &geometry, theme)?.show()?;
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -127,9 +130,9 @@ pub fn run() {
 /// The main window is created here (not in tauri.conf.json) so it can carry
 /// navigation guards: the webview may only ever show Linotes' own pages.
 ///
-/// It opens visible, in the saved theme's colours. (A window created hidden has
-/// no size on Linux, so the page would lay out at 0×0 and its first frame would
-/// be misplaced when the window appeared.)
+/// It is created hidden and shown straight after (see `run`), in the saved
+/// theme's colours. It must not stay hidden while the page loads: a hidden
+/// window has no size on Linux, so the page would lay out at 0×0.
 fn create_main_window(
     app: &tauri::App,
     geometry: &settings::WindowGeometry,
@@ -142,6 +145,7 @@ fn create_main_window(
         .min_inner_size(720.0, 480.0)
         .maximized(geometry.maximized)
         .center()
+        .visible(false)
         .theme(Some(theme))
         .background_color(desktop::background_color(theme))
         // Read by src/main.tsx so the first paint already uses the right theme.
