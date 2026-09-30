@@ -6,6 +6,19 @@ All notable changes to Linotes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-30
+
+### Changed
+
+- A new loading screen: the Linotes penguin and name fade in while the app starts, then the app
+  fades in.
+- The logo is sharp at every size and zoom level, and has a faint outline in dark mode so the
+  black penguin stays visible.
+
+### Fixed
+
+- The window no longer flashes white when Linotes starts with the dark theme.
+
 ## [0.1.2] - 2026-09-30
 
 ### Fixed
@@ -57,7 +70,8 @@ First public release.
 - Settings for appearance, editor, storage and keyboard shortcuts.
 - Packaging for `.deb`, `.rpm` and AppImage; draft Flatpak manifest.
 
-[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/arlkn/linotes/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/arlkn/linotes/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/arlkn/linotes/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/arlkn/linotes/releases/tag/v0.1.0
