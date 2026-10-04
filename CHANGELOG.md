@@ -6,6 +6,23 @@ All notable changes to Linotes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-10-04
+
+### Added
+
+- Images in notes. Paste a screenshot (`Ctrl+V`), drag pictures in from Files, or use the new
+  image button in the toolbar. Images are saved as ordinary files in an `attachments` folder
+  inside your notes folder and linked with standard Markdown, so other Markdown editors show them
+  too. Notes that already contain images now open in the rich text editor.
+- Moving a note to another folder keeps its images working, and importing Markdown brings along
+  the images it links to.
+- Web images are never loaded, for privacy: they appear as a card with their address and an
+  "Open in Browser" button.
+
+### Fixed
+
+- `Esc` in the rich text editor now returns to the notes list, as the shortcut list says.
+
 ## [0.1.4] - 2026-10-04
 
 ### Added
@@ -92,7 +109,8 @@ First public release.
 - Settings for appearance, editor, storage and keyboard shortcuts.
 - Packaging for `.deb`, `.rpm` and AppImage; draft Flatpak manifest.
 
-[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/arlkn/linotes/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/arlkn/linotes/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/arlkn/linotes/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/arlkn/linotes/compare/v0.1.1...v0.1.2

@@ -72,6 +72,14 @@
     <color type="primary" scheme_preference="dark">#7a2e12</color>
   </branding>
   <releases>
+    <release version="0.1.5" type="stable" date="2026-10-04">
+      <url type="details">https://github.com/arlkn/linotes/releases/tag/v0.1.5</url>
+      <description>
+        <p>Images in notes: paste a screenshot, drag pictures in from Files or use the toolbar
+        button. Images are saved as ordinary files in your notes folder, and web images are never
+        loaded.</p>
+      </description>
+    </release>
     <release version="0.1.4" type="stable" date="2026-10-04">
       <url type="details">https://github.com/arlkn/linotes/releases/tag/v0.1.4</url>
       <description>
