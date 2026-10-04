@@ -44,7 +44,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ['Ctrl', 'Click'], description: 'Open link in your browser' },
       { keys: ['Shift', 'Enter'], description: 'Line break' },
       { keys: ['Ctrl', 'Shift', 'V'], description: 'Paste without formatting' },
-      { keys: ['Ctrl', 'V'], description: 'Paste an image (or drag one in from Files)' },
+      { keys: ['Ctrl', 'V'], description: 'Paste an image' },
     ],
   },
   {

@@ -146,7 +146,7 @@ export function FormattingToolbar({ editor, onLink }: { editor: Editor; onLink: 
         onClick={onLink}
       />
       <IconButton
-        label="Insert image (or paste or drop one)"
+        label="Drag or add image"
         icon={ImagePlus}
         disabled={disabled}
         onClick={() =>
