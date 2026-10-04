@@ -16,6 +16,9 @@ const VIEW_KEYS: Record<string, View> = {
   '4': { kind: 'trash' },
 };
 
+/** Shortcuts that need neither Ctrl nor Alt. */
+const PLAIN_KEYS = new Set(['F6', 'F9', 'Escape']);
+
 function modalOpen(): boolean {
   return (
     document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]') !==
@@ -44,6 +47,9 @@ export function useGlobalShortcuts(): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing) return;
+      const ctrl = event.ctrlKey || event.metaKey;
+      // Plain typing is never a shortcut; skip the work below on every key press.
+      if (!ctrl && !event.altKey && !PLAIN_KEYS.has(event.key)) return;
       const settings = useSettings.getState();
       const run = (action: () => void) => {
         event.preventDefault();
@@ -54,7 +60,6 @@ export function useGlobalShortcuts(): void {
       if (matches(event, { key: 'q', ctrl: true })) return run(() => void requestQuit());
       if (modalOpen()) return;
 
-      const ctrl = event.ctrlKey || event.metaKey;
       const key = keyName(event);
 
       if (matches(event, { key: 'n', ctrl: true })) return run(() => void createNote());
