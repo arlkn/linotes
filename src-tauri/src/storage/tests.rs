@@ -573,3 +573,52 @@ fn zip_names(path: &Path) -> Vec<String> {
 fn leftover_temp_files(dir: &Path) -> bool {
     fs::read_dir(dir).unwrap().filter_map(|e| e.ok()).any(|e| crate::filesystem::atomic::is_temp_file(&e.path()))
 }
+
+/// Timings for a large library. Run with
+/// `cargo test --release large_library -- --ignored --nocapture`.
+#[test]
+#[ignore = "benchmark"]
+fn large_library_timings() {
+    use std::time::Instant;
+    const NOTES: usize = 5_000;
+    let notes_dir = tempfile::tempdir().unwrap();
+    let data_dir = tempfile::tempdir().unwrap();
+    let (index, recovery) = (data_dir.path().join("index"), data_dir.path().join("recovery"));
+    let paragraph = "Some **Markdown** text with a [link](https://example.com) and `code`.\n\n".repeat(20);
+    for i in 0..NOTES {
+        let folder = notes_dir.path().join(format!("Folder {}", i % 50));
+        fs::create_dir_all(&folder).unwrap();
+        let body = format!("---\ntitle: Note {i}\n---\n# Note {i}\n\n{paragraph}");
+        fs::write(folder.join(format!("Note {i}.md")), body).unwrap();
+    }
+    let open = || Library::open(notes_dir.path(), false, &index, &recovery).unwrap().0;
+    let time = |label: &str, f: &mut dyn FnMut()| {
+        let start = Instant::now();
+        f();
+        eprintln!("{label:<40} {:>8.1} ms", start.elapsed().as_secs_f64() * 1000.0);
+    };
+
+    eprintln!("{NOTES} notes");
+    time("open, first run (full index)", &mut || drop(open()));
+    let mut lib = None;
+    time("open, index up to date (normal start)", &mut || lib = Some(open()));
+    let lib = lib.as_mut().unwrap();
+    time("sync, nothing changed", &mut || assert!(!lib.sync_all(false).unwrap().has_changes()));
+    let summary = lib.list_notes().unwrap().into_iter().find(|n| n.title == "Note 7").unwrap();
+    let note = lib.read_note(&summary.id).unwrap();
+    time("save one note", &mut || {
+        lib.save_note(SaveNoteInput {
+            id: note.summary.id.clone(),
+            title: note.summary.title.clone(),
+            content: format!("{}\nEdited.\n", note.content),
+            expected_rev: note.rev.clone(),
+            force: false,
+        })
+        .unwrap();
+    });
+    time("sync after Linotes' own save", &mut || drop(lib.sync_all(false).unwrap()));
+    fs::write(notes_dir.path().join("Folder 3/Note 3.md"), "---\ntitle: Note 3\n---\nChanged elsewhere.\n").unwrap();
+    time("sync, one file changed elsewhere", &mut || assert!(lib.sync_all(false).unwrap().has_changes()));
+    time("list notes", &mut || drop(lib.list_notes().unwrap()));
+    time("rebuild index", &mut || drop(lib.sync_all(true).unwrap()));
+}
