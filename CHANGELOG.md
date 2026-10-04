@@ -6,6 +6,28 @@ All notable changes to Linotes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-04
+
+### Added
+
+- A quick switcher: press `Ctrl+P` and type part of a title to open any note. Case, accents and
+  Turkish ı/İ don't matter; an empty box lists recently edited notes.
+
+### Changed
+
+- Much faster with large libraries. With 5,000 notes, switching views is about 8× faster, the
+  first index of a notes folder about a third faster, and checks for changes made by other
+  programs (which also run after every save) take half the time.
+- Typing stays quick in large libraries: every key press used to do some work for each note in
+  the list.
+
+### Fixed
+
+- A save started while a slow save was still running could be refused as a conflict, showing a
+  "changed outside Linotes" banner for your own text.
+- Moving quickly through the notes list could leave the list highlighting a different note from
+  the one open in the editor.
+
 ## [0.1.3] - 2026-09-30
 
 ### Changed
@@ -70,7 +92,8 @@ First public release.
 - Settings for appearance, editor, storage and keyboard shortcuts.
 - Packaging for `.deb`, `.rpm` and AppImage; draft Flatpak manifest.
 
-[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/arlkn/linotes/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/arlkn/linotes/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/arlkn/linotes/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/arlkn/linotes/compare/v0.1.0...v0.1.1
