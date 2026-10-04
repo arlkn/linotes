@@ -151,10 +151,11 @@ export function FormattingToolbar({ editor, onLink }: { editor: Editor; onLink: 
         disabled={disabled}
         onClick={() =>
           void chooseImageFile().then((link) => {
-            if (link)
-              chain()
-                .insertContent({ type: 'image', attrs: { src: normalizeImageSrc(link) } })
-                .run();
+            // The note may have been closed while the file chooser was open.
+            if (!link || editor.isDestroyed) return;
+            chain()
+              .insertContent({ type: 'image', attrs: { src: normalizeImageSrc(link) } })
+              .run();
           })
         }
       />

@@ -41,10 +41,12 @@ export const LinotesImage = Node.create<ImageOptions>({
         tag: 'img[src]',
         getAttrs: (element) => {
           const src = element.getAttribute('src') ?? '';
-          // Pasted pages can carry huge inline images; those don't belong in a Markdown file.
-          if (/^(data|blob):/i.test(src)) return false;
+          // `blob:` and `data:` images (a pasted screenshot in WebKitGTK) are kept as they
+          // are: ImageInput stores them as files before they reach the note.
+          const embedded = /^(blob:|data:image\/)/i.test(src);
+          if (!embedded && /^(blob|data):/i.test(src)) return false;
           return {
-            src: normalizeImageSrc(src),
+            src: embedded ? src : normalizeImageSrc(src),
             alt: element.getAttribute('alt'),
             title: element.getAttribute('title'),
           };
@@ -77,7 +79,7 @@ class ImageView implements NodeView {
 
   update(node: PMNode): boolean {
     if (node.type !== this.node.type) return false;
-    const changed = node.attrs.src !== this.node.attrs.src || node.attrs.alt !== this.node.attrs.alt;
+    const changed = ['src', 'alt', 'title'].some((key) => node.attrs[key] !== this.node.attrs[key]);
     this.node = node;
     if (changed) this.render();
     return true;
@@ -138,8 +140,6 @@ class ImageView implements NodeView {
 function card(label: string, detail: string): HTMLElement {
   const element = document.createElement('span');
   element.className = 'ln-image-card';
-  element.setAttribute('role', 'img');
-  element.setAttribute('aria-label', `${label}: ${detail}`);
   const strong = document.createElement('strong');
   strong.textContent = label;
   const small = document.createElement('span');

@@ -63,6 +63,7 @@
 .ln-prose .ln-image {
   display: inline-block;
   max-width: 100%;
+  margin-block: 0.25em;
   vertical-align: bottom;
   border-radius: 0.5rem;
   white-space: normal;

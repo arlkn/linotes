@@ -1,5 +1,5 @@
 import { Editor } from '@tiptap/core';
-import { Slice } from '@tiptap/pm/model';
+import { Fragment, Slice } from '@tiptap/pm/model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { serializeMarkdown } from '../markdown/serialize';
 import { createExtensions } from '.';
@@ -65,6 +65,41 @@ describe('adding images', () => {
     );
     await vi.waitFor(() => expect(upload).toHaveBeenCalled());
     expect(serializeMarkdown(view.state.doc)).toBe('Before after\n');
+  });
+
+  it('stores images pasted as embedded pictures (how WebKitGTK pastes a screenshot)', async () => {
+    const upload = vi.fn(async (file: File) =>
+      file.type === 'image/png' ? 'attachments/image-1.png' : null,
+    );
+    const view = createEditor(upload).view;
+    const { schema } = view.state;
+    const pasted = (src: string) =>
+      new Slice(
+        Fragment.from(schema.nodes.paragraph!.create(null, schema.nodes.image!.create({ src }))),
+        1,
+        1,
+      );
+    const png =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+    editor!.commands.setTextSelection(8);
+    const handled = view.someProp('handlePaste', (paste) =>
+      paste(view, { clipboardData: transfer([]) } as unknown as ClipboardEvent, pasted(png)),
+    );
+    expect(handled).toBe(true);
+    await vi.waitFor(() => expect(serializeMarkdown(view.state.doc)).toContain('attachments/image-1.png'));
+    expect(upload.mock.calls[0]![0].type).toBe('image/png');
+    expect(serializeMarkdown(view.state.doc)).not.toContain('data:');
+
+    // An embedded picture that can't be stored is left out, never saved as data.
+    view.someProp('handlePaste', (paste) =>
+      paste(
+        view,
+        { clipboardData: transfer([]) } as unknown as ClipboardEvent,
+        pasted('data:image/gif;base64,R0lGOD'),
+      ),
+    );
+    await vi.waitFor(() => expect(upload).toHaveBeenCalledTimes(2));
+    expect(serializeMarkdown(view.state.doc)).not.toContain('data:');
   });
 
   it('shows web images as a card instead of loading them', () => {

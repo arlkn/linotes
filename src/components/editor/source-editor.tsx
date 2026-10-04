@@ -5,7 +5,7 @@ import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, placeholder } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import { useEffect, useRef } from 'react';
-import { filesIn } from '@/features/editor/extensions/image-input';
+import { captureNativePaste, filesIn } from '@/features/editor/extensions/image-input';
 import { addImageFile } from '@/features/editor/images';
 import { imageDestination } from '@/features/editor/markdown/serialize';
 import { countText, markdownToPlainText } from '@/features/editor/stats';
@@ -109,7 +109,21 @@ export function SourceEditor({ session }: { session: EditorSession }) {
     viewRef.current = view;
     updateStats(session.content);
     const unregister = registerContentProvider(session, () => view.state.doc.toString());
+    // WebKitGTK gives the page a pasted screenshot only by pasting it itself, and
+    // CodeMirror cancels that for a clipboard that looks empty: catch it first.
+    const onPaste = (event: ClipboardEvent) => {
+      if (!event.clipboardData || event.clipboardData.types.length > 0 || session.trashed) return;
+      event.stopPropagation();
+      const at = view.state.selection.main.head;
+      void captureNativePaste().then((files) => {
+        view.focus();
+        if (files.length > 0) void insertImages(view, files, at);
+      });
+    };
+    const element = host.current;
+    element.addEventListener('paste', onPaste, true);
     return () => {
+      element.removeEventListener('paste', onPaste, true);
       if (statsTimer) clearTimeout(statsTimer);
       unregister();
       view.destroy();
