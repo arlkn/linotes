@@ -108,25 +108,31 @@ impl Library {
             parsed.push((file, note, id, in_file));
         }
 
-        let previous_rows: HashMap<String, NoteRow> =
-            repo::list(&self.db.conn)?.into_iter().map(|r| (r.summary.id.clone(), r)).collect();
-        let disk_paths: HashSet<&str> = disk.iter().map(|f| f.rel.as_str()).collect();
-        let parsed_paths: HashSet<&str> = parsed.iter().map(|(f, ..)| f.rel.as_str()).collect();
-
+        // The rows being replaced, read before any are dropped (a moved note keeps its dates).
+        let mut previous_rows: HashMap<&str, NoteRow> = HashMap::new();
+        for (_, _, id, _) in &parsed {
+            if let Some(row) = repo::get(&self.db.conn, id)? {
+                previous_rows.insert(id, row);
+            }
+        }
         let mut report = SyncReport { skipped, ..Default::default() };
+        let disk_paths: HashSet<&str> = disk.iter().map(|f| f.rel.as_str()).collect();
+        let skipped_paths: HashSet<&str> = report.skipped.iter().map(|s| s.path.as_str()).collect();
+        let new_ids: HashMap<&str, &str> = parsed.iter().map(|(f, _, id, _)| (f.rel.as_str(), id.as_str())).collect();
+
         let tx = self.db.conn.unchecked_transaction()?;
         // Drop rows whose file is gone, unreadable, or about to be re-indexed under another id.
         for (rel, (id, _)) in &known {
             let gone = !disk_paths.contains(rel.as_str());
-            let unreadable = report.skipped.iter().any(|s| &s.path == rel);
-            let reassigned = parsed_paths.contains(rel.as_str())
-                && parsed.iter().any(|(f, _, new_id, _)| &f.rel == rel && new_id != id);
+            let unreadable = skipped_paths.contains(rel.as_str());
+            let reassigned = new_ids.get(rel.as_str()).is_some_and(|new_id| new_id != id);
             if gone || unreadable || reassigned {
                 repo::delete(&tx, id)?;
             }
         }
         for (file, note, id, in_file) in &parsed {
-            let (row, body_text) = build_row(&file.rel, note, id.clone(), *in_file, file.stamp, previous_rows.get(id));
+            let previous = previous_rows.get(id.as_str());
+            let (row, body_text) = build_row(&file.rel, note, id.clone(), *in_file, file.stamp, previous);
             // Another row may still hold this path under a different id; the path is authoritative.
             if let Some(existing) = repo::get_by_path(&tx, &file.rel)?
                 && existing.summary.id != *id

@@ -67,11 +67,17 @@ fn map_row(row: &Row<'_>) -> rusqlite::Result<NoteRow> {
 }
 
 pub fn get(conn: &Connection, id: &str) -> AppResult<Option<NoteRow>> {
-    Ok(conn.query_row(&format!("SELECT {COLUMNS} FROM notes WHERE id = ?1"), [id], map_row).optional()?)
+    Ok(conn
+        .prepare_cached(&format!("SELECT {COLUMNS} FROM notes WHERE id = ?1"))?
+        .query_row([id], map_row)
+        .optional()?)
 }
 
 pub fn get_by_path(conn: &Connection, rel_path: &str) -> AppResult<Option<NoteRow>> {
-    Ok(conn.query_row(&format!("SELECT {COLUMNS} FROM notes WHERE rel_path = ?1"), [rel_path], map_row).optional()?)
+    Ok(conn
+        .prepare_cached(&format!("SELECT {COLUMNS} FROM notes WHERE rel_path = ?1"))?
+        .query_row([rel_path], map_row)
+        .optional()?)
 }
 
 pub fn list(conn: &Connection) -> AppResult<Vec<NoteRow>> {
@@ -96,8 +102,9 @@ pub fn path_index(conn: &Connection) -> AppResult<HashMap<String, (String, FileS
 /// Insert or update a note and its full-text entry.
 pub fn upsert(conn: &Connection, row: &NoteRow, body_text: &str) -> AppResult<()> {
     let s = &row.summary;
-    let seq: i64 = conn.query_row(
-        "INSERT INTO notes (id, rel_path, folder, title, preview, favorite, trashed, trashed_from, trashed_at,
+    let seq: i64 = conn
+        .prepare_cached(
+            "INSERT INTO notes (id, rel_path, folder, title, preview, favorite, trashed, trashed_from, trashed_at,
                             created_at, updated_at, body_hash, file_mtime_ns, file_size, id_in_file)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
          ON CONFLICT(id) DO UPDATE SET
@@ -108,38 +115,39 @@ pub fn upsert(conn: &Connection, row: &NoteRow, body_text: &str) -> AppResult<()
             body_hash = excluded.body_hash, file_mtime_ns = excluded.file_mtime_ns,
             file_size = excluded.file_size, id_in_file = excluded.id_in_file
          RETURNING seq",
-        params![
-            s.id,
-            row.rel_path,
-            s.folder,
-            s.title,
-            s.preview,
-            s.favorite,
-            s.trashed,
-            row.trashed_from,
-            s.trashed_at,
-            s.created_at,
-            s.updated_at,
-            row.body_hash,
-            row.file_mtime_ns,
-            row.file_size,
-            row.id_in_file
-        ],
-        |r| r.get(0),
-    )?;
-    conn.execute("DELETE FROM notes_fts WHERE rowid = ?1", [seq])?;
-    conn.execute(
-        "INSERT INTO notes_fts (rowid, title, body, folder, alt) VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![seq, s.title, body_text, s.folder, alternate_spellings(&s.title, body_text)],
-    )?;
+        )?
+        .query_row(
+            params![
+                s.id,
+                row.rel_path,
+                s.folder,
+                s.title,
+                s.preview,
+                s.favorite,
+                s.trashed,
+                row.trashed_from,
+                s.trashed_at,
+                s.created_at,
+                s.updated_at,
+                row.body_hash,
+                row.file_mtime_ns,
+                row.file_size,
+                row.id_in_file
+            ],
+            |r| r.get(0),
+        )?;
+    conn.prepare_cached("DELETE FROM notes_fts WHERE rowid = ?1")?.execute([seq])?;
+    conn.prepare_cached("INSERT INTO notes_fts (rowid, title, body, folder, alt) VALUES (?1, ?2, ?3, ?4, ?5)")?
+        .execute(params![seq, s.title, body_text, s.folder, alternate_spellings(&s.title, body_text)])?;
     Ok(())
 }
 
 pub fn delete(conn: &Connection, id: &str) -> AppResult<bool> {
-    let seq: Option<i64> = conn.query_row("SELECT seq FROM notes WHERE id = ?1", [id], |r| r.get(0)).optional()?;
+    let seq: Option<i64> =
+        conn.prepare_cached("SELECT seq FROM notes WHERE id = ?1")?.query_row([id], |r| r.get(0)).optional()?;
     let Some(seq) = seq else { return Ok(false) };
-    conn.execute("DELETE FROM notes_fts WHERE rowid = ?1", [seq])?;
-    conn.execute("DELETE FROM notes WHERE seq = ?1", [seq])?;
+    conn.prepare_cached("DELETE FROM notes_fts WHERE rowid = ?1")?.execute([seq])?;
+    conn.prepare_cached("DELETE FROM notes WHERE seq = ?1")?.execute([seq])?;
     Ok(true)
 }
 
