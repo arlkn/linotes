@@ -43,6 +43,20 @@ Files without a header are indexed as they are (the title comes from the file na
 a header the first time it saves changes to such a note. Merely opening or indexing a note never
 modifies it. A byte-order mark and Windows line endings are preserved.
 
+### Images
+
+Images you add to a note — pasted, dropped or inserted — are stored in `attachments/` at the top
+of the notes folder (for example `attachments/diagram.png`, or `attachments/image-20261004-183012.png`
+for a pasted screenshot). Existing files are never overwritten. The note links to the image with an
+ordinary relative Markdown link, such as `![](../attachments/diagram.png)` from a note in a
+folder, so other Markdown editors show it too.
+
+- Moving a note to another folder updates its image links; nothing else in the file changes.
+- Images stay when a note is deleted (other notes may use them).
+- Images that a note already links to elsewhere in the notes folder (for example next to the
+  note) are shown as well. Web images (`https://…`) are never loaded.
+- `attachments` is not shown as a folder in Linotes, and its name is reserved at the top level.
+
 ### Trash
 
 Deleted notes move to `.trash/` at the top of the notes folder and remember where they came from.
@@ -64,8 +78,8 @@ You can also keep the notes folder in Git, or sync it with Syncthing or Nextclou
 watches the folder and picks up changes from other devices; if a note you are editing changes
 underneath you, Linotes asks which version to keep instead of overwriting either.
 
-**Export** (Settings → Storage → Export as ZIP) produces an archive of your notes and folders
-(without the Trash), useful for sharing or one-off backups.
+**Export** (Settings → Storage → Export as ZIP) produces an archive of your notes, folders and
+images (without the Trash), useful for sharing or one-off backups.
 
 ## Crash safety
 

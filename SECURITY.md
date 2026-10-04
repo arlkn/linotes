@@ -17,7 +17,8 @@ Linotes is a local application. It protects your notes against **data loss** and
 ### What Linotes does
 
 - **No network use during normal operation.** No telemetry, analytics, update checks, remote
-  fonts or remote content. Links open in your browser only when you Ctrl+Click them.
+  fonts or remote content — web images in notes are shown as a card, never loaded. Links open in
+  your browser only when you Ctrl+Click them (or press "Open in Browser" on a web image).
 - **A locked-down web view.** The interface runs in WebKitGTK with a strict Content Security
   Policy and can only:
   - call the commands listed in `src-tauri/build.rs`, each granted explicitly in
@@ -34,6 +35,10 @@ Linotes is a local application. It protects your notes against **data loss** and
 - **Safe rendering of notes.** Markdown is parsed into a fixed document structure; raw HTML in a
   note is never rendered — such notes are edited as Markdown source. Search highlights are
   rendered as text.
+- **Images only from the notes folder.** The page loads images through the `linotes-image:`
+  protocol, which serves only image files (checked by content) inside the notes folder — no `..`,
+  hidden folders or symbolic links that lead outside it. SVG images are served with a policy that
+  stops scripts. Added images are checked by content and limited to 25 MB.
 - **Controlled external links.** Only `http:`, `https:` and `mailto:` links are handed to the
   system, after validation in Rust.
 - **Careful imports.** Only regular `.md`, `.markdown`, `.mdown`, `.mkd` and `.txt` files up to

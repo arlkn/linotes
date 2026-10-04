@@ -51,6 +51,9 @@ the Linux desktop. Linotes takes a different path:
 - Markdown shortcuts while typing (`#`, `-`, `[ ]`, `>`, ```` ``` ````, `**bold**`…)
 - A **Markdown mode** for editing the raw source, switchable at any time (`Ctrl+Shift+M`)
 - Pasting Markdown text inserts formatted content
+- **Images**: paste a screenshot, drag pictures in from Files, or use the toolbar button. They are
+  saved as ordinary files in an `attachments` folder and linked with standard Markdown, so other
+  editors show them too. Web images are never loaded (privacy); they appear as a card with a link
 - Automatic saving while you type, word and character counts, save status
 
 **Organising**
@@ -66,7 +69,8 @@ the Linux desktop. Linotes takes a different path:
 - Default location `~/Documents/Linotes`, or any folder you choose
 - Changes made by other programs (editors, sync tools, Git) appear live
 - Linotes never silently overwrites a note that changed on disk — you choose which version to keep
-- Import Markdown files and whole folders; export single notes, folders or everything as ZIP
+- Import Markdown files and whole folders (with the images they link to); export single notes,
+  folders or everything as ZIP
 
 **Desktop**
 - Designed for GNOME and Ubuntu, works on any modern Linux desktop (X11 and Wayland)
@@ -247,6 +251,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 │   ├── Weekly planning.md
 │   └── Projects/
 │       └── Roadmap.md
+├── attachments/             ← images in your notes, e.g. ![](../attachments/diagram.png)
 └── .trash/                  ← deleted notes, until you empty the Trash
 ```
 
@@ -313,7 +318,8 @@ Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full picture.
 - [x] Snap Store and APT repository — see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)
 - [x] Quick switcher and faster large libraries (0.1.4)
 - [ ] Signed release artifacts
-- [ ] Tables and images in the rich text editor (they already work in Markdown mode)
+- [x] Images: paste, drop or insert them (0.1.5)
+- [ ] Tables in the rich text editor (they already work in Markdown mode)
 - [ ] Links between notes and backlinks
 - [ ] Tags from frontmatter as a sidebar filter
 - [ ] Translations

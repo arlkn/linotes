@@ -52,6 +52,7 @@ the notes folder and the search index, and a React interface runs in the system 
 | `storage/sync.rs` | Reconciles the index with the disk; resolves note identity |
 | `storage/note_file.rs` | Frontmatter parsing and line-preserving editing; BOM/CRLF preserved |
 | `storage/markdown.rs` | Plain-text extraction (pulldown-cmark) for search and previews |
+| `storage/attachments.rs` | Images: storing, safe serving paths, link rewriting on move and import |
 | `database/` | Connection, `PRAGMA user_version` migrations, corrupt-index replacement |
 | `search/` | FTS5 queries with safe query building, highlights and scopes |
 | `filesystem/atomic.rs` | Temp-file + fsync + rename writes; no-clobber creates and renames |
@@ -117,8 +118,31 @@ valid and they never conflict with unsaved typing.
 - **Verified saves**: every serialisation is parsed back and compared with the document; if it
   would not round-trip, a strictly escaped form is written instead.
 - **Safe opening**: when a note is opened, it is parsed, re-serialised, and both versions are
-  rendered. If the rendering differs, or the note contains tables, images, raw HTML or mixed
-  task lists, it opens in Markdown mode with an explanation instead of being altered.
+  rendered. If the rendering differs, or the note contains tables, raw HTML or mixed task lists,
+  it opens in Markdown mode with an explanation instead of being altered.
+- **Images** are inline `image` nodes. Their paths are kept in the form parsing gives back
+  (readable Unicode; spaces are written as `%20`), so every path survives saving.
+
+### Images
+
+```text
+paste / drop / toolbar ──save_image(noteId, bytes)──▶ Library::save_image
+  1. check the content is an image (PNG, JPEG, GIF, WebP, AVIF, BMP, SVG; ≤ 25 MB)
+  2. write it to attachments/ under a free name (never overwriting)
+  3. return a link relative to the note's folder → ![](../attachments/diagram.png)
+
+<img src="linotes-image://localhost/attachments%2Fdiagram.png">
+  └─ storage::read_image: only image files inside the notes folder (no `..`, hidden
+     folders or symlinks out of it), served with their sniffed type; SVG can't run scripts
+```
+
+- Links are relative to the note's file, so other Markdown editors show the images too. Moving
+  a note rewrites its image links for the new folder (`storage/attachments.rs`); only the link
+  destinations change. Trashed notes resolve images against the folder they came from.
+- Importing Markdown copies the local images it links to (inside the imported folder, or next
+  to an imported file) into `attachments/`.
+- Web images are never fetched: the CSP allows images only from the app, `data:`, `blob:` and
+  `linotes-image:`, and the editor shows web images as a card with an "Open in Browser" button.
 
 Opening a note never modifies it; only editing does. Rich-mode edits normalise syntax
 (`*` bullets become `-`, setext headings become `#`), which renders identically.
@@ -141,6 +165,8 @@ a banner with explicit choices.
   control characters or symlink escapes).
 - The window may only navigate to the app itself; new windows are denied; a strict CSP applies.
 - External links open in the default browser only for `http`, `https` and `mailto`.
+- Images are served only from inside the notes folder, by the `linotes-image:` protocol; web
+  images are never loaded.
 - Imported Markdown is never rendered as HTML: raw HTML is shown as source in Markdown mode.
 
 See [SECURITY.md](../SECURITY.md) for limitations and how to report issues.
