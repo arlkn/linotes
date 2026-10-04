@@ -72,6 +72,12 @@
     <color type="primary" scheme_preference="dark">#7a2e12</color>
   </branding>
   <releases>
+    <release version="0.1.6" type="stable" date="2026-10-05">
+      <url type="details">https://github.com/arlkn/linotes/releases/tag/v0.1.6</url>
+      <description>
+        <p>Clearer wording for the image button and the image shortcut.</p>
+      </description>
+    </release>
     <release version="0.1.5" type="stable" date="2026-10-04">
       <url type="details">https://github.com/arlkn/linotes/releases/tag/v0.1.5</url>
       <description>

@@ -6,6 +6,13 @@ All notable changes to Linotes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-10-05
+
+### Changed
+
+- The image button in the toolbar is labelled "Drag or add image", and the shortcut list says
+  "Paste an image".
+
 ## [0.1.5] - 2026-10-04
 
 ### Added
@@ -109,7 +116,8 @@ First public release.
 - Settings for appearance, editor, storage and keyboard shortcuts.
 - Packaging for `.deb`, `.rpm` and AppImage; draft Flatpak manifest.
 
-[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/arlkn/linotes/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/arlkn/linotes/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/arlkn/linotes/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/arlkn/linotes/compare/v0.1.2...v0.1.3
