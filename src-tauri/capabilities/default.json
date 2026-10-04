@@ -21,6 +21,8 @@
     "allow-create-folder",
     "allow-rename-folder",
     "allow-delete-folder",
+    "allow-save-image",
+    "allow-choose-image",
     "allow-search-notes",
     "allow-get-settings",
     "allow-update-settings",

@@ -16,6 +16,8 @@ const COMMANDS: &[&str] = &[
     "create_folder",
     "rename_folder",
     "delete_folder",
+    "save_image",
+    "choose_image",
     "search_notes",
     "get_settings",
     "update_settings",

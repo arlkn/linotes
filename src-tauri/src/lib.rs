@@ -11,6 +11,7 @@ mod database;
 mod desktop;
 mod error;
 mod filesystem;
+mod images;
 mod import_export;
 mod paths;
 mod search;
@@ -59,6 +60,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::new(paths))
+        .register_asynchronous_uri_scheme_protocol(images::SCHEME, |ctx, request, responder| {
+            let app = ctx.app_handle().clone();
+            tauri::async_runtime::spawn_blocking(move || responder.respond(images::respond(&app, &request)));
+        })
         .setup(|app| {
             let handle = app.handle().clone();
             let state = app.state::<AppState>();
@@ -102,6 +107,8 @@ pub fn run() {
             commands::folders::create_folder,
             commands::folders::rename_folder,
             commands::folders::delete_folder,
+            commands::images::save_image,
+            commands::images::choose_image,
             commands::search::search_notes,
             commands::settings::get_settings,
             commands::settings::update_settings,

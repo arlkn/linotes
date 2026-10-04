@@ -8,6 +8,7 @@
 
 pub mod app;
 pub mod folders;
+pub mod images;
 pub mod import_export;
 pub mod library;
 pub mod notes;
