@@ -3,7 +3,7 @@ use crate::filesystem::atomic::write_new_atomic;
 use crate::filesystem::safe_path::{self, MAX_FOLDER_DEPTH, join_rel};
 use crate::filesystem::sanitize::{self, note_file_stem, unique_dir_name, unique_file_name};
 use crate::storage::note_file::{KEY_ID, NoteFile, Scalar};
-use crate::storage::{Library, lowercase_names};
+use crate::storage::{ImportedImages, Library, lowercase_names};
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -51,8 +51,11 @@ impl Library {
     pub fn import_files(&mut self, sources: &[PathBuf], target_folder: &str) -> AppResult<ImportReport> {
         let dir = safe_path::resolve_existing_dir(&self.root, target_folder)?;
         let mut report = ImportReport::default();
+        let mut images = ImportedImages::default();
         for source in sources {
-            match self.import_one(source, &dir, target_folder) {
+            // Images are copied from the imported file's own folder (and below).
+            let allowed = source.parent().and_then(|p| p.canonicalize().ok()).unwrap_or_default();
+            match self.import_one(source, &dir, target_folder, &allowed, &mut images) {
                 Ok(note) => report.imported.push(note),
                 Err(err) => {
                     report.failed.push(ImportIssue { source: source.display().to_string(), reason: err.to_string() })
@@ -71,6 +74,7 @@ impl Library {
             ));
         }
         let parent_dir = safe_path::resolve_existing_dir(&self.root, target_folder)?;
+        let mut images = ImportedImages::default();
 
         // Collect first so limits are enforced before anything is written.
         let mut entries = Vec::new();
@@ -140,16 +144,25 @@ impl Library {
                 report.skipped.push(ImportIssue { source: display, reason: "Not a Markdown or text file".into() });
             } else {
                 fs::create_dir_all(&target_dir).with_path("create folder", &target_dir)?;
-                match self.import_one(path, &target_dir, &target_rel) {
+                match self.import_one(path, &target_dir, &target_rel, &source, &mut images) {
                     Ok(note) => report.imported.push(note),
                     Err(err) => report.failed.push(ImportIssue { source: display, reason: err.to_string() }),
                 }
             }
         }
+        // Images the notes link to were copied into `attachments/`, so they weren't skipped.
+        report.skipped.retain(|issue| !images.contains(Path::new(&issue.source)));
         Ok(report)
     }
 
-    fn import_one(&mut self, source: &Path, dir: &Path, folder_rel: &str) -> AppResult<ImportedNote> {
+    fn import_one(
+        &mut self,
+        source: &Path,
+        dir: &Path,
+        folder_rel: &str,
+        image_root: &Path,
+        images: &mut ImportedImages,
+    ) -> AppResult<ImportedNote> {
         let meta = fs::symlink_metadata(source).with_path("read", source)?;
         if meta.file_type().is_symlink() {
             return Err(AppError::invalid("Symbolic links are not imported"));
@@ -177,6 +190,11 @@ impl Library {
             && self.contains_id(id)?
         {
             file.set(KEY_ID, Some(Scalar::str(uuid::Uuid::new_v4().to_string())));
+            content = file.serialize();
+        }
+        let source_dir = source.parent().unwrap_or(image_root);
+        if let Some(body) = self.import_images(&file.body, source_dir, image_root, folder_rel, images) {
+            file.body = body;
             content = file.serialize();
         }
 

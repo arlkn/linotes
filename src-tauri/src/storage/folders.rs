@@ -4,6 +4,7 @@ use super::Library;
 use super::library::lowercase_names;
 use crate::database::repo;
 use crate::error::{AppError, AppResult, IoContext};
+use crate::filesystem::ATTACHMENTS_DIR;
 use crate::filesystem::atomic::is_temp_file;
 use crate::filesystem::safe_path::{self, MAX_FOLDER_DEPTH, join_rel, name_of, parent_of};
 use crate::filesystem::sanitize;
@@ -37,13 +38,21 @@ pub struct DeleteFolderReport {
 impl Library {
     pub fn list_folders(&self) -> AppResult<Vec<FolderInfo>> {
         let counts = repo::folder_counts(&self.db.conn)?;
+        // The images folder is not a folder of notes, unless someone keeps notes there.
+        let attachments_prefix = format!("{ATTACHMENTS_DIR}/");
+        let show_attachments = counts.iter().any(|(folder, &count)| {
+            count > 0 && (folder == ATTACHMENTS_DIR || folder.starts_with(&attachments_prefix))
+        });
         let mut folders = Vec::new();
         let walker = WalkDir::new(&self.root)
             .min_depth(1)
             .max_depth(MAX_FOLDER_DEPTH)
             .follow_links(false)
             .into_iter()
-            .filter_entry(|e| !e.file_name().to_string_lossy().starts_with('.'));
+            .filter_entry(|e| {
+                let name = e.file_name().to_string_lossy();
+                !name.starts_with('.') && (show_attachments || e.depth() > 1 || name != ATTACHMENTS_DIR)
+            });
         for entry in walker.filter_map(|e| e.ok()) {
             if !entry.file_type().is_dir() {
                 continue;
@@ -66,6 +75,7 @@ impl Library {
     pub fn create_folder(&mut self, parent: &str, name: &str) -> AppResult<FolderInfo> {
         let parent_dir = safe_path::resolve_existing_dir(&self.root, parent)?;
         let name = sanitize::folder_name(name)?;
+        check_not_reserved(parent, &name)?;
         if lowercase_names(&parent_dir).contains(&name.to_lowercase()) {
             return Err(AppError::AlreadyExists(format!("A folder or file named “{name}” already exists here.")));
         }
@@ -81,6 +91,7 @@ impl Library {
         let dir = safe_path::resolve_existing_dir(&self.root, path)?;
         let new_name = sanitize::folder_name(new_name)?;
         let parent = parent_of(path).to_string();
+        check_not_reserved(&parent, &new_name)?;
         let new_rel = join_rel(&parent, &new_name);
         if new_rel != path {
             let case_only = new_rel.to_lowercase() == path.to_lowercase();
@@ -146,4 +157,14 @@ impl Library {
         remaining_files.sort();
         Ok(DeleteFolderReport { trashed_notes, removed: !dir.exists(), remaining_files })
     }
+}
+
+/// `attachments` at the top of the notes folder is where Linotes keeps images.
+fn check_not_reserved(parent: &str, name: &str) -> AppResult<()> {
+    if parent.is_empty() && name.eq_ignore_ascii_case(ATTACHMENTS_DIR) {
+        return Err(AppError::invalid(format!(
+            "“{ATTACHMENTS_DIR}” is where Linotes keeps the images in your notes. Choose another name."
+        )));
+    }
+    Ok(())
 }

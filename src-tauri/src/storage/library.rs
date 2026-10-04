@@ -250,6 +250,7 @@ impl Library {
             return Ok(row.summary);
         }
         let rel = self.move_file_into(&row.rel_path, &target_dir, folder)?;
+        self.relink_moved_note(&rel, parent_of(&row.rel_path), folder);
         self.reindex_existing(&rel, &row)
     }
 

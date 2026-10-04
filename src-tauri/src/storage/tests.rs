@@ -622,3 +622,120 @@ fn large_library_timings() {
     time("list notes", &mut || drop(lib.list_notes().unwrap()));
     time("rebuild index", &mut || drop(lib.sync_all(true).unwrap()));
 }
+
+const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR rest of a tiny image";
+
+#[test]
+fn images_are_saved_in_attachments_with_relative_links() {
+    let mut fx = Fixture::new();
+    fx.lib.create_folder("", "Work").unwrap();
+    let root_note = fx.lib.create_note("", "Root", "").unwrap();
+    let work_note = fx.lib.create_note("Work", "Plan", "").unwrap();
+
+    let first = fx.lib.save_image(&root_note.summary.id, "My Diagram.png", PNG).unwrap();
+    assert_eq!(first.path, "attachments/My-Diagram.png");
+    assert_eq!(first.link, "attachments/My-Diagram.png");
+    let second = fx.lib.save_image(&work_note.summary.id, "My Diagram.png", PNG).unwrap();
+    assert_eq!(second.path, "attachments/My-Diagram-2.png", "existing images are never overwritten");
+    assert_eq!(second.link, "../attachments/My-Diagram-2.png");
+    assert_eq!(fs::read(fx.path(&first.path)).unwrap(), PNG);
+
+    let pasted = fx.lib.save_image(&root_note.summary.id, "image.png", PNG).unwrap();
+    assert!(pasted.path.starts_with("attachments/image-20"), "{}", pasted.path);
+
+    let not_image = fx.lib.save_image(&root_note.summary.id, "evil.png", b"<html><script>").unwrap_err();
+    assert!(matches!(not_image, AppError::InvalidInput(_)));
+    let too_big = vec![0u8; super::MAX_IMAGE_BYTES + 1];
+    assert!(fx.lib.save_image(&root_note.summary.id, "big.png", &too_big).is_err());
+    fx.lib.trash_note(&root_note.summary.id).unwrap();
+    assert!(fx.lib.save_image(&root_note.summary.id, "x.png", PNG).is_err(), "trashed notes are read-only");
+
+    // The images folder is not a folder of notes, and its name is reserved at the top.
+    let folders: Vec<String> = fx.lib.list_folders().unwrap().into_iter().map(|f| f.path).collect();
+    assert_eq!(folders, vec!["Work"]);
+    assert!(fx.lib.create_folder("", "Attachments").is_err());
+    assert!(fx.lib.rename_folder("Work", "attachments").is_err());
+    fx.lib.create_folder("Work", "attachments").unwrap();
+}
+
+#[test]
+fn only_image_files_inside_the_notes_folder_are_shown() {
+    let fx = Fixture::new();
+    let root = fx.root();
+    fs::create_dir_all(root.join("attachments")).unwrap();
+    fs::create_dir_all(root.join(".hidden")).unwrap();
+    fs::write(root.join("attachments/a.png"), PNG).unwrap();
+    fs::write(root.join(".hidden/b.png"), PNG).unwrap();
+    fs::write(root.join("attachments/fake.png"), b"not an image").unwrap();
+    fs::write(root.join("notes.md"), "# Notes").unwrap();
+    let outside = tempfile::tempdir().unwrap();
+    fs::write(outside.path().join("secret.png"), PNG).unwrap();
+    std::os::unix::fs::symlink(outside.path().join("secret.png"), root.join("attachments/link.png")).unwrap();
+
+    let (kind, bytes) = super::read_image(&root, "attachments/a.png").unwrap();
+    assert_eq!((kind.mime(), bytes.as_slice()), ("image/png", PNG));
+    for bad in [
+        "attachments/../attachments/a.png",
+        ".hidden/b.png",
+        "/etc/passwd",
+        "notes.md",
+        "attachments/fake.png",
+        "attachments/link.png",
+        "attachments/missing.png",
+        "",
+    ] {
+        assert!(super::read_image(&root, bad).is_err(), "{bad:?} must not be shown");
+    }
+}
+
+#[test]
+fn moving_a_note_keeps_its_images_working() {
+    let mut fx = Fixture::new();
+    fx.lib.create_folder("", "Work").unwrap();
+    fx.lib.create_folder("Work", "Projects").unwrap();
+    let note = fx.lib.create_note("", "Trip", "").unwrap();
+    let image = fx.lib.save_image(&note.summary.id, "map.png", PNG).unwrap();
+    let body = format!("Route:\n\n![The map]({})\n\nSee https://example.com\n", image.link);
+    let saved = fx.save(&note, "Trip", &body);
+
+    fx.lib.move_note(&note.summary.id, "Work/Projects").unwrap();
+    let moved = fx.lib.read_note(&note.summary.id).unwrap();
+    assert_eq!(moved.content, "Route:\n\n![The map](../../attachments/map.png)\n\nSee https://example.com\n");
+    assert_ne!(moved.rev, saved.rev, "the editor must reload the moved note");
+    assert!(fx.read("Work/Projects/Trip.md").contains("title: Trip"), "frontmatter is kept");
+
+    // Trash and restore don't need new links: the note returns to the same folder.
+    fx.lib.trash_note(&note.summary.id).unwrap();
+    fx.lib.restore_note(&note.summary.id).unwrap();
+    assert_eq!(fx.lib.read_note(&note.summary.id).unwrap().content, moved.content);
+}
+
+#[test]
+fn imported_notes_bring_their_images() {
+    let mut fx = Fixture::new();
+    let src = tempfile::tempdir().unwrap();
+    let s = src.path().join("Vault");
+    fs::create_dir_all(s.join("img")).unwrap();
+    fs::create_dir_all(s.join("Daily")).unwrap();
+    fs::write(s.join("img/photo one.png"), PNG).unwrap();
+    fs::write(s.join("img/not-really.png"), b"text").unwrap();
+    fs::write(src.path().join("outside.png"), PNG).unwrap();
+    fs::write(
+        s.join("Daily/Monday.md"),
+        "![A photo](../img/photo%20one.png)\n![Again](<../img/photo one.png>)\n\
+         ![Fake](../img/not-really.png)\n![Outside](../../outside.png)\n![Web](https://x.org/a.png)\n",
+    )
+    .unwrap();
+
+    let report = fx.lib.import_directory(&s, "").unwrap();
+    assert_eq!(report.imported.len(), 1);
+    let skipped: Vec<&str> = report.skipped.iter().map(|i| i.source.as_str()).collect();
+    assert!(skipped.iter().all(|s| !s.ends_with("photo one.png")), "copied images are not skipped: {skipped:?}");
+    assert_eq!(fx.files("attachments"), vec!["photo-one.png"], "each image is copied once");
+    let note = fx.lib.read_note(&report.imported[0].id).unwrap();
+    assert_eq!(
+        note.content,
+        "![A photo](../../attachments/photo-one.png)\n![Again](<../../attachments/photo-one.png>)\n\
+         ![Fake](../img/not-really.png)\n![Outside](../../outside.png)\n![Web](https://x.org/a.png)\n"
+    );
+}

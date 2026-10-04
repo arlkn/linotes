@@ -15,6 +15,8 @@ use std::time::UNIX_EPOCH;
 pub const NOTE_EXTENSIONS: &[&str] = &["md", "markdown"];
 /// Name of the trash directory at the root of the notes folder.
 pub const TRASH_DIR: &str = ".trash";
+/// Folder at the root of the notes folder that holds the images notes link to.
+pub const ATTACHMENTS_DIR: &str = "attachments";
 
 pub fn is_note_file_name(name: &str) -> bool {
     !name.starts_with('.')

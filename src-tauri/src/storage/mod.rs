@@ -4,6 +4,7 @@
 //! mutations follow the same pattern: validate input, perform an atomic
 //! filesystem operation, then update the index from what is now on disk.
 
+mod attachments;
 mod folders;
 mod library;
 pub mod markdown;
@@ -12,6 +13,7 @@ mod sync;
 #[cfg(test)]
 mod tests;
 
+pub use attachments::{IMAGE_EXTENSIONS, ImportedImages, MAX_IMAGE_BYTES, SavedImage, percent_decode, read_image};
 pub use folders::{DeleteFolderReport, FolderInfo};
 pub use library::Library;
 pub(crate) use library::lowercase_names;
