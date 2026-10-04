@@ -3,6 +3,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { openExternalLink } from '@/features/app/lifecycle';
 import { createExtensions } from '@/features/editor/extensions';
+import { addImageFile, imageUrlFor } from '@/features/editor/images';
 import { serializeMarkdown } from '@/features/editor/markdown/serialize';
 import { countText } from '@/features/editor/stats';
 import { registerContentProvider, useEditorStore, type EditorSession } from '@/features/editor/store';
@@ -28,7 +29,16 @@ export function RichEditor({ session }: { session: EditorSession }) {
   const statsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const extensions = useMemo(
-    () => createExtensions({ placeholder: 'Start writing…', onLink: () => setLinkOpen(true) }),
+    () =>
+      createExtensions({
+        placeholder: 'Start writing…',
+        onLink: () => setLinkOpen(true),
+        images: {
+          resolveUrl: imageUrlFor,
+          upload: addImageFile,
+          openExternal: (url) => void openExternalLink(url),
+        },
+      }),
     [],
   );
 

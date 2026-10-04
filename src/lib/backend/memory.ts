@@ -6,6 +6,7 @@
 import type { Backend } from './types';
 import { BackendError } from './errors';
 import { fold } from '@/lib/fold';
+import { relativeImagePath, resolveImagePath } from '@/features/editor/image-paths';
 import { WELCOME_NOTE_BODY, WELCOME_NOTE_TITLE } from '@/features/onboarding/welcome';
 import type {
   FolderInfo,
@@ -106,6 +107,18 @@ function cleanName(name: string): string {
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/^\.+/, '');
+}
+
+/** The image type of `bytes`, judged by content like the Rust side does. */
+function imageType(bytes: Uint8Array): string | null {
+  const starts = (...values: number[]) => values.every((v, i) => bytes[i] === v);
+  if (starts(0x89, 0x50, 0x4e, 0x47)) return 'image/png';
+  if (starts(0xff, 0xd8, 0xff)) return 'image/jpeg';
+  if (starts(0x47, 0x49, 0x46, 0x38)) return 'image/gif';
+  const head = new TextDecoder().decode(bytes.slice(0, 512));
+  if (head.startsWith('RIFF') && head.slice(8, 12) === 'WEBP') return 'image/webp';
+  if (head.trimStart().startsWith('<') && head.includes('<svg')) return 'image/svg+xml';
+  return null;
 }
 
 export function createMemoryBackend(options: MemoryBackendOptions = {}): MemoryBackend {
@@ -254,6 +267,9 @@ export function createMemoryBackend(options: MemoryBackendOptions = {}): MemoryB
       throw new BackendError('notFound', `Folder “${path}” does not exist`);
   };
 
+  // Images "stored" in attachments/ (library-relative path → contents and URL).
+  const images = new Map<string, { blob: Blob; url: string | null }>();
+
   const backend: MemoryBackend = {
     kind: 'memory',
 
@@ -290,6 +306,18 @@ export function createMemoryBackend(options: MemoryBackendOptions = {}): MemoryB
       const note = get(id);
       if (note.trashed)
         throw new BackendError('invalidInput', 'Restore the note from the trash before moving it.');
+      // Like the Rust side, image links are rewritten for the new folder.
+      const relinked = note.content.replace(
+        /(!\[[^\]\n]*\]\()([^)\s]+)/g,
+        (link, head: string, src: string) => {
+          const path = resolveImagePath(note.folder, src);
+          return path ? head + relativeImagePath(folder, path) : link;
+        },
+      );
+      if (relinked !== note.content) {
+        note.content = relinked;
+        note.rev += 1;
+      }
       note.folder = folder;
       return summary(note);
     },
@@ -370,6 +398,34 @@ export function createMemoryBackend(options: MemoryBackendOptions = {}): MemoryB
       }
       for (const f of [...folders]) if (f === path || f.startsWith(`${path}/`)) folders.delete(f);
       return { trashedNotes, removed: true, remainingFiles: [] };
+    },
+
+    async saveImage(noteId, name, bytes) {
+      const note = get(noteId);
+      if (note.trashed) throw new BackendError('invalidInput', 'Notes in the trash can’t be edited.');
+      const type = imageType(bytes);
+      if (!type) throw new BackendError('invalidInput', 'Only images can be added to notes.');
+      const stem =
+        name
+          .replace(/\.[^.]*$/, '')
+          .replace(/[^\p{L}\p{N}_]+/gu, '-')
+          .replace(/^-+|-+$/g, '') || 'image';
+      const extension = type.split('/')[1]!.replace('jpeg', 'jpg').replace('svg+xml', 'svg');
+      let path = `attachments/${stem}.${extension}`;
+      for (let n = 2; images.has(path); n += 1) path = `attachments/${stem}-${n}.${extension}`;
+      images.set(path, { blob: new Blob([bytes.slice()], { type }), url: null });
+      return { link: relativeImagePath(note.folder, path), path };
+    },
+
+    async chooseImage() {
+      return null;
+    },
+
+    imageUrl(path) {
+      const image = images.get(path);
+      if (!image) return '';
+      image.url ??= URL.createObjectURL(image.blob);
+      return image.url;
     },
 
     async searchNotes(query) {

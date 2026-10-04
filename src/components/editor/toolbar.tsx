@@ -6,6 +6,7 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  ImagePlus,
   Italic,
   Link,
   List,
@@ -20,6 +21,8 @@ import {
   Undo2,
 } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
+import { chooseImageFile } from '@/features/editor/images';
+import { normalizeImageSrc } from '@/features/editor/markdown/tokenizer';
 
 function Divider() {
   return <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-line" />;
@@ -141,6 +144,19 @@ export function FormattingToolbar({ editor, onLink }: { editor: Editor; onLink: 
         active={state.link}
         disabled={disabled}
         onClick={onLink}
+      />
+      <IconButton
+        label="Insert image (or paste or drop one)"
+        icon={ImagePlus}
+        disabled={disabled}
+        onClick={() =>
+          void chooseImageFile().then((link) => {
+            if (link)
+              chain()
+                .insertContent({ type: 'image', attrs: { src: normalizeImageSrc(link) } })
+                .run();
+          })
+        }
       />
       <Divider />
       <IconButton

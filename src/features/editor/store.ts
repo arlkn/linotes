@@ -76,6 +76,8 @@ interface EditorState {
   recreateMissing(): Promise<void>;
   applySummary(summary: NoteSummary): void;
   handleExternalChange(report: SyncReport): Promise<void>;
+  /** Load the open note again after Linotes itself changed its file (moving it updates image links). */
+  reload(): Promise<void>;
   requestFocus(target: 'title' | 'body'): void;
 }
 
@@ -496,6 +498,21 @@ export const useEditorStore = create<EditorState>()((set, get) => {
         toast.info('Note updated', 'Changes made outside Linotes were loaded.');
       } else {
         set({ status: 'conflict', conflict: disk, error: 'The note was changed outside Linotes.' });
+      }
+    },
+
+    async reload() {
+      while (saving) await saving;
+      const { session } = get();
+      if (!session || hasUnsavedEdits()) return;
+      try {
+        const disk = await getBackend().readNote(session.id);
+        const current = get().session;
+        if (current?.id !== disk.id || current.rev === disk.rev || hasUnsavedEdits()) return;
+        loadIntoSession(disk, current.mode);
+        useLibrary.getState().upsertNote(summaryOf(disk));
+      } catch {
+        // The note stays as it is; a later save reports any problem.
       }
     },
 

@@ -39,6 +39,14 @@ export interface SavedNote {
   path: string;
 }
 
+/** An image stored for a note (in `attachments/`). */
+export interface SavedImage {
+  /** The link to put in the note, relative to the note's folder. */
+  link: string;
+  /** Library-relative path of the image file. */
+  path: string;
+}
+
 export interface FolderInfo {
   path: string;
   name: string;

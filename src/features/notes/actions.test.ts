@@ -4,7 +4,7 @@ import { createMemoryBackend, type MemoryBackend } from '@/lib/backend/memory';
 import { __resetEditorInternals, useEditorStore } from '@/features/editor/store';
 import { useSettings } from '@/features/settings/store';
 import type { Note } from '@/types/domain';
-import { loadLibraryData, selectNote } from './actions';
+import { loadLibraryData, moveNote, selectNote } from './actions';
 import { useLibrary } from './store';
 
 let backend: MemoryBackend;
@@ -46,5 +46,26 @@ describe('selecting notes', () => {
 
     expect(useEditorStore.getState().session?.id).toBe(last.id);
     expect(useLibrary.getState().selectedId).toBe(last.id);
+  });
+
+  it('reloads the open note when moving it rewrites its image links', async () => {
+    await backend.createFolder('', 'Work');
+    const note = await backend.createNote('', 'Trip');
+    await backend.saveNote({
+      id: note.id,
+      title: 'Trip',
+      content: 'Map: ![](attachments/map.png)\n',
+      expectedRev: note.rev,
+    });
+    await loadLibraryData();
+    await selectNote(note.id);
+
+    await moveNote(note.id, 'Work');
+
+    const { session, status, conflict } = useEditorStore.getState();
+    expect(session?.folder).toBe('Work');
+    expect(session?.content).toBe('Map: ![](../attachments/map.png)\n');
+    expect(status).toBe('saved');
+    expect(conflict).toBeNull();
   });
 });

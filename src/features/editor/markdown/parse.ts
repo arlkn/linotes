@@ -1,7 +1,7 @@
 import type { Node as PMNode, Schema } from '@tiptap/pm/model';
 import type { Token } from 'markdown-it';
 import { MarkdownParser } from 'prosemirror-markdown';
-import { tokenizer, type ParseEnv } from './tokenizer';
+import { normalizeImageSrc, tokenizer, type ParseEnv } from './tokenizer';
 
 export type ParseResult = { ok: true; doc: PMNode } | { ok: false; reasons: string[] };
 
@@ -54,6 +54,15 @@ function parserFor(schema: Schema): MarkdownParser {
         getAttrs: (token) => ({ href: token.attrGet('href'), title: token.attrGet('title') || null }),
       },
       code_inline: { mark: 'code', noCloseToken: true },
+      image: {
+        node: 'image',
+        getAttrs: (token) => ({
+          src: normalizeImageSrc(token.attrGet('src') ?? ''),
+          // The alt text exactly as Markdown renders it.
+          alt: tokenizer.renderer.renderInlineAsText(token.children ?? [], tokenizer.options, {}) || null,
+          title: token.attrGet('title') || null,
+        }),
+      },
     });
     parsers.set(schema, parser);
   }

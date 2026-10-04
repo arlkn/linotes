@@ -8,6 +8,7 @@ import type {
   Note,
   NoteSummary,
   SaveNoteInput,
+  SavedImage,
   SavedNote,
   SearchHit,
   SearchQuery,
@@ -45,6 +46,13 @@ export interface Backend {
   deleteFolder(path: string): Promise<DeleteFolderReport>;
 
   searchNotes(query: SearchQuery): Promise<SearchHit[]>;
+
+  /** Store an image (pasted or dropped) for a note. */
+  saveImage(noteId: string, name: string, bytes: Uint8Array): Promise<SavedImage>;
+  /** Pick an image with the file chooser and store it for a note. */
+  chooseImage(noteId: string): Promise<SavedImage | null>;
+  /** URL the page can show the image at the library-relative `path` with. */
+  imageUrl(path: string): string;
 
   getSettings(): Promise<Settings>;
   updateSettings(patch: SettingsPatch): Promise<Settings>;

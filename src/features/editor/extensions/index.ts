@@ -2,6 +2,8 @@ import type { AnyExtension } from '@tiptap/core';
 import { CharacterCount, Placeholder } from '@tiptap/extensions';
 import StarterKit from '@tiptap/starter-kit';
 import { LinotesCodeBlock } from './code-block';
+import { LinotesImage, type ImageOptions } from './image';
+import { ImageInput, type ImageInputOptions } from './image-input';
 import { LinotesBulletList, LinotesOrderedList, LinotesTaskItem, LinotesTaskList } from './lists';
 import { MarkdownPaste } from './markdown-paste';
 import { EditorShortcuts } from './shortcuts';
@@ -10,6 +12,8 @@ import { SoftBreak } from './soft-break';
 export interface ExtensionOptions {
   placeholder?: string;
   onLink?: () => void;
+  /** Showing and adding images (not needed for parsing and tests). */
+  images?: Partial<ImageOptions & ImageInputOptions>;
 }
 
 /**
@@ -41,6 +45,11 @@ export function createExtensions(options: ExtensionOptions = {}): AnyExtension[]
     LinotesTaskList,
     LinotesTaskItem,
     LinotesCodeBlock,
+    LinotesImage.configure({
+      resolveUrl: options.images?.resolveUrl ?? null,
+      openExternal: options.images?.openExternal ?? null,
+    }),
+    ImageInput.configure({ upload: options.images?.upload ?? null }),
     SoftBreak,
     Placeholder.configure({ placeholder: options.placeholder ?? 'Start writing…' }),
     CharacterCount,

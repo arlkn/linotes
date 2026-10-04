@@ -152,6 +152,8 @@ export async function moveNote(id: string, folder?: string): Promise<void> {
   if (!updated) return;
   useLibrary.getState().upsertNote(updated);
   useEditorStore.getState().applySummary(updated);
+  // Moving rewrites the note's image links for its new folder.
+  if (useEditorStore.getState().session?.id === id) await useEditorStore.getState().reload();
   await refreshFoldersQuietly();
   toast.success(`Moved to ${folderLabel(target)}`);
 }

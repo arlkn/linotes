@@ -1,12 +1,12 @@
-import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke, type InvokeArgs, type InvokeOptions } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { Backend } from './types';
 import { toBackendError } from './errors';
 import type { SyncReport } from '@/types/domain';
 
-async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+async function call<T>(command: string, args?: InvokeArgs, options?: InvokeOptions): Promise<T> {
   try {
-    return await invoke<T>(command, args);
+    return await invoke<T>(command, args, options);
   } catch (error) {
     throw toBackendError(error);
   }
@@ -34,6 +34,14 @@ export function createTauriBackend(): Backend {
     deleteFolder: (path) => call('delete_folder', { path }),
 
     searchNotes: (query) => call('search_notes', { query }),
+
+    // The image travels as raw bytes; the note id and file name go in headers.
+    saveImage: (noteId, name, bytes) =>
+      call('save_image', bytes, {
+        headers: { 'x-note-id': encodeURIComponent(noteId), 'x-file-name': encodeURIComponent(name) },
+      }),
+    chooseImage: (noteId) => call('choose_image', { noteId }),
+    imageUrl: (path) => convertFileSrc(path, 'linotes-image'),
 
     getSettings: () => call('get_settings'),
     updateSettings: (patch) => call('update_settings', { patch }),

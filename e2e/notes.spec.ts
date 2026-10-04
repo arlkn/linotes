@@ -126,3 +126,51 @@ test('go to a note by title with Ctrl+P', async ({ page }) => {
   await expect(page.getByLabel('Note title')).toHaveValue('Linotes architecture');
   await expect(page.locator('.ProseMirror')).toBeFocused();
 });
+
+// A 1×1 PNG, so the browser can really decode what was added.
+const DOT_PNG = [
+  ...Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
+    'base64',
+  ),
+];
+
+test('paste and drop images into a note', async ({ page }) => {
+  await openApp(page);
+  await page.getByRole('button', { name: 'New note' }).click();
+  await page.getByLabel('Note title').fill('Pictures');
+  await page.keyboard.press('Enter');
+  const body = page.locator('.ProseMirror');
+
+  await body.evaluate((element, bytes) => {
+    const data = new DataTransfer();
+    data.items.add(new File([new Uint8Array(bytes)], 'Red dot.png', { type: 'image/png' }));
+    element.dispatchEvent(
+      new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+    );
+  }, DOT_PNG);
+  const images = body.locator('.ln-image img');
+  await expect(images).toHaveCount(1);
+  await expect.poll(() => images.first().evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1);
+
+  await body.evaluate((element, bytes) => {
+    const data = new DataTransfer();
+    data.items.add(new File([new Uint8Array(bytes)], 'Second.png', { type: 'image/png' }));
+    const box = element.getBoundingClientRect();
+    element.dispatchEvent(
+      new DragEvent('drop', {
+        dataTransfer: data,
+        clientX: box.left + 4,
+        clientY: box.top + 4,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  }, DOT_PNG);
+  await expect(images).toHaveCount(2);
+
+  await page.getByRole('radio', { name: 'Markdown' }).click();
+  const source = page.getByLabel('Markdown source');
+  await expect(source).toContainText('![](attachments/Red-dot.png)');
+  await expect(source).toContainText('![](attachments/Second.png)');
+});

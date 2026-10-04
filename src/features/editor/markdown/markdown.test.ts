@@ -3,6 +3,7 @@ import { analyzeMarkdown, sameRendering } from './analyze';
 import { parseMarkdown } from './parse';
 import { editorSchema } from './schema';
 import { documentsEquivalent, escapeInline, serializeMarkdown, serializeUnchecked } from './serialize';
+import { normalizeImageSrc } from './tokenizer';
 
 const schema = editorSchema();
 
@@ -49,6 +50,15 @@ describe('round trip keeps Markdown written in Linotes style unchanged', () => {
     safeCharacters: 'snake_case, ~/Documents, 2 * 3 * 4, C:\\Users\\me, a < b, AT&T, 100%\n',
     headingWithHash: '# C# and F#\n',
     adjacentLists: '- a\n- b\n\n\n* c\n* d\n',
+    image: '![A diagram](attachments/diagram.png)\n',
+    imageNoAlt: '![](../attachments/image-20261004-183012.png)\n',
+    imageWithTitle: '![Map](attachments/map.png "Our route")\n',
+    imageInText: 'Before ![icon](icon.png) after, and **bold ![b](b.png)**.\n',
+    imageInLink: '[![Logo](logo.png)](https://example.com)\n',
+    imageUnicodePath: '![Görsel](attachments/görsel-1.png)\n',
+    imageEncodedSpaces: '![x](my%20photo.png)\n',
+    imageWeb: '![Web](https://example.com/a.png)\n',
+    imagesInList: '- ![one](1.png)\n- ![two](2.png)\n',
   };
 
   for (const [name, markdown] of Object.entries(cases)) {
@@ -161,6 +171,23 @@ describe('verified serialisation never loses text', () => {
     }
   }
 
+  it('keeps image paths intact whatever the alt text and file name', () => {
+    const names = ['a.png', 'my photo.png', 'görsel (1).png', '100%.png', 'a%41.png', '[x].png', 'a_b*c.png'];
+    [...randomTexts(300)].forEach((alt, i) => {
+      const src = normalizeImageSrc(`../attachments/${names[i % names.length]!}`);
+      const image = schema.node('image', { src, alt });
+      const markdown = serializeMarkdown(schema.node('doc', null, [schema.node('paragraph', null, [image])]));
+      const parsed = parseMarkdown(markdown, schema);
+      expect(parsed.ok, markdown).toBe(true);
+      if (!parsed.ok) return;
+      let found: string | undefined;
+      parsed.doc.descendants((node) => {
+        if (node.type.name === 'image') found = node.attrs.src as string;
+      });
+      expect(found, markdown).toBe(src);
+    });
+  });
+
   it('round-trips 600 adversarial strings exactly', () => {
     for (const text of randomTexts(600)) {
       const doc = paragraphDoc(text);
@@ -213,12 +240,24 @@ describe('analysis decides when rich mode is safe', () => {
     ['tables', '| a | b |\n|---|---|\n| 1 | 2 |\n'],
     ['HTML', '<div align="center">hi</div>\n'],
     ['HTML', 'inline <span>html</span>\n'],
-    ['images', '![alt](image.png)\n'],
     ['lists mixing checkboxes and bullets', '- [ ] task\n- plain\n'],
   ])('rejects %s', (reason, markdown) => {
     const result = analyzeMarkdown(markdown);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reasons).toContain(reason);
+  });
+
+  it('accepts notes with images', () => {
+    expect(analyzeMarkdown('# Trip\n\n![The map](attachments/map.png)\n').ok).toBe(true);
+    expect(analyzeMarkdown('![with *formatted* alt](a.png)\n').ok).toBe(true);
+  });
+
+  it('keeps image links that use other spellings rendering the same', () => {
+    for (const markdown of ['![x](<my photo.png>)\n', '![x](a\\(1\\).png)\n', '![a [b] c](x.png)\n']) {
+      const result = analyzeMarkdown(markdown);
+      expect(result.ok, markdown).toBe(true);
+      if (result.ok) expect(sameRendering(markdown, serializeMarkdown(result.doc))).toBe(true);
+    }
   });
 
   it('rejects unbalanced underline tags', () => {

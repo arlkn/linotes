@@ -139,6 +139,11 @@ function linkClose(state: MarkdownSerializerState, mark: Mark, parent: PMNode, i
   return `](${target}${title})`;
 }
 
+/** Image paths are written as other editors write them: spaces as `%20`. */
+export function imageDestination(src: string): string {
+  return src.replace(/[\s<>]/g, encodeURIComponent).replace(/[()]/g, '\\$&');
+}
+
 function createSerializer(strict: boolean): MarkdownSerializer {
   const defaultLink = defaultMarkdownSerializer.marks.link!;
   return new MarkdownSerializer(
@@ -205,6 +210,14 @@ function createSerializer(strict: boolean): MarkdownSerializer {
       },
       softBreak(state, _node, parent, index) {
         if (index + 1 < parent.childCount) state.text('\n', false);
+      },
+      image(state, node) {
+        // Not escaped like link text: Markdown renders alt text without escaped characters.
+        const alt = String(node.attrs.alt ?? '');
+        const title = node.attrs.title ? ` "${String(node.attrs.title).replace(/"/g, '\\"')}"` : '';
+        state.write(
+          `![${strict ? escapeStrict(alt) : escapeInline(alt)}](${imageDestination(String(node.attrs.src ?? ''))}${title})`,
+        );
       },
       text: textSerializer(strict),
     },

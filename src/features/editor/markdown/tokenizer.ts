@@ -4,9 +4,8 @@ import type { StateCore, Token } from 'markdown-it';
 /**
  * Markdown dialect used by Linotes: CommonMark + GFM strikethrough + GFM task
  * lists, with underline written as `<u>…</u>` (the form most Markdown tools
- * render). Other raw HTML, tables and images are *detected* but not mapped
- * into the rich editor; notes containing them open in Markdown mode so
- * nothing is lost.
+ * render). Other raw HTML and tables are *detected* but not mapped into the
+ * rich editor; notes containing them open in Markdown mode so nothing is lost.
  */
 
 export interface ParseEnv {
@@ -17,7 +16,6 @@ export interface ParseEnv {
 export const UNSUPPORTED = {
   html: 'HTML',
   tables: 'tables',
-  images: 'images',
   mixedTasks: 'lists mixing checkboxes and bullets',
 } as const;
 
@@ -91,14 +89,13 @@ function taskLists(state: StateCore): void {
   }
 }
 
-/** Map `<u>`/`</u>` to underline; flag any other HTML, tables and images. */
+/** Map `<u>`/`</u>` to underline; flag any other HTML and tables. */
 function htmlAndUnsupported(state: StateCore): void {
   for (const token of state.tokens) {
     if (token.type === 'html_block') flag(state, UNSUPPORTED.html);
     if (token.type === 'table_open') flag(state, UNSUPPORTED.tables);
     if (token.type !== 'inline' || !token.children) continue;
     for (const child of token.children) {
-      if (child.type === 'image') flag(state, UNSUPPORTED.images);
       if (child.type !== 'html_inline') continue;
       const tag = child.content.trim().toLowerCase();
       if (tag === '<u>') {
@@ -125,6 +122,14 @@ export function createTokenizer(): MarkdownIt {
 }
 
 export const tokenizer = createTokenizer();
+
+/**
+ * An image path in the form the editor keeps it: readable (`görsel.png`,
+ * `my photo.png`), exactly as parsing the written Markdown gives it back.
+ */
+export function normalizeImageSrc(src: string): string {
+  return tokenizer.normalizeLinkText(tokenizer.normalizeLink(src));
+}
 
 /** Render Markdown to an HTML string for comparison only (never inserted into the DOM). */
 export function renderForComparison(markdown: string): string {

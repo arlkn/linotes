@@ -5,6 +5,9 @@ import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, placeholder } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import { useEffect, useRef } from 'react';
+import { filesIn } from '@/features/editor/extensions/image-input';
+import { addImageFile } from '@/features/editor/images';
+import { imageDestination } from '@/features/editor/markdown/serialize';
 import { countText, markdownToPlainText } from '@/features/editor/stats';
 import { registerContentProvider, useEditorStore, type EditorSession } from '@/features/editor/store';
 import { useSettings } from '@/features/settings/store';
@@ -25,6 +28,38 @@ const markdownHighlight = HighlightStyle.define([
 ]);
 
 const STATS_DELAY_MS = 200;
+
+/** Paste or drop image files: each is stored and a Markdown image inserted where it landed. */
+const imageFiles = EditorView.domEventHandlers({
+  paste(event, view) {
+    const files = filesIn(event.clipboardData);
+    if (files.length === 0) return false;
+    event.preventDefault();
+    void insertImages(view, files, view.state.selection.main.head);
+    return true;
+  },
+  drop(event, view) {
+    const files = filesIn(event.dataTransfer);
+    if (files.length === 0) return false;
+    event.preventDefault();
+    const at = view.posAtCoords({ x: event.clientX, y: event.clientY }) ?? view.state.selection.main.head;
+    void insertImages(view, files, at);
+    return true;
+  },
+});
+
+async function insertImages(view: EditorView, files: File[], at: number): Promise<void> {
+  const links: string[] = [];
+  for (const file of files) {
+    const link = await addImageFile(file);
+    if (link) links.push(link);
+  }
+  if (links.length === 0 || !view.dom.isConnected) return;
+  const text = links.map((link) => `![](${imageDestination(link)})`).join(' ');
+  const from = Math.min(at, view.state.doc.length);
+  view.dispatch({ changes: { from, insert: text }, selection: { anchor: from + text.length } });
+  view.focus();
+}
 
 /** Plain Markdown editing with syntax highlighting. */
 export function SourceEditor({ session }: { session: EditorSession }) {
@@ -61,6 +96,7 @@ export function SourceEditor({ session }: { session: EditorSession }) {
           spellcheckCompartment.current.of(
             EditorView.contentAttributes.of({ spellcheck: String(spellcheck) }),
           ),
+          imageFiles,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               markDirty();
