@@ -288,7 +288,9 @@ export const useEditorStore = create<EditorState>()((set, get) => {
     },
 
     async save(options = {}) {
-      if (saving) await saving;
+      // A loop, checked right before starting: when several callers wait for the
+      // same save, the first to resume may already have started the next one.
+      while (saving) await saving;
       const { session, status } = get();
       if (!session || session.trashed) return true;
       if (!options.force) {
@@ -361,7 +363,7 @@ export const useEditorStore = create<EditorState>()((set, get) => {
 
     async flush() {
       clearTimer();
-      if (saving) await saving;
+      while (saving) await saving;
       const { status, session } = get();
       if (!session) return true;
       if (status === 'conflict' || status === 'missing') return !hasUnsavedEdits();
@@ -464,7 +466,7 @@ export const useEditorStore = create<EditorState>()((set, get) => {
         return;
       }
       if (!report.updated.includes(id) && !report.added.includes(id)) return;
-      if (saving) await saving;
+      while (saving) await saving;
       let disk: Note;
       try {
         disk = await getBackend().readNote(id);

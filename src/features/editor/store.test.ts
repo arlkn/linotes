@@ -111,6 +111,32 @@ describe('autosave', () => {
     expect((await backend.readNote(id)).content).toBe('first and second\n');
   });
 
+  it('does not conflict with itself when several saves wait for a slow one', async () => {
+    const id = await openDraft();
+    const original = backend.saveNote.bind(backend);
+    let held: (() => void) | null = null;
+    const saveNote = vi.fn((input: SaveNoteInput): Promise<SavedNote> =>
+      held === null && saveNote.mock.calls.length === 1
+        ? new Promise((resolve, reject) => {
+            held = () => void original(input).then(resolve, reject);
+          })
+        : original(input),
+    );
+    backend.saveNote = saveNote;
+    type('first');
+    await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS + 10);
+    expect(state().status).toBe('saving');
+    type('second');
+    // Ctrl+S twice (or Ctrl+S and the autosave timer) while the first save is still running.
+    const results = Promise.all([state().save(), state().save()]);
+    held!();
+    expect(await results).toEqual([true, true]);
+    expect(state().status).toBe('saved');
+    expect(state().conflict).toBeNull();
+    expect(saveNote).toHaveBeenCalledTimes(2);
+    expect((await backend.readNote(id)).content).toBe('second\n');
+  });
+
   it('still saves text after the editor is unmounted', async () => {
     const id = await openDraft();
     type('written before unmount');
