@@ -9,6 +9,7 @@ import { countText } from '@/features/editor/stats';
 import { registerContentProvider, useEditorStore, type EditorSession } from '@/features/editor/store';
 import { useSettings } from '@/features/settings/store';
 import { toast } from '@/features/ui/toasts';
+import { useUi } from '@/features/ui/ui-store';
 import { LinkDialog } from './link-dialog';
 import { TitleField } from './title-field';
 import { FormattingToolbar } from './toolbar';
@@ -33,6 +34,7 @@ export function RichEditor({ session }: { session: EditorSession }) {
       createExtensions({
         placeholder: 'Start writing…',
         onLink: () => setLinkOpen(true),
+        onEscape: () => useUi.getState().focusList(),
         images: {
           resolveUrl: imageUrlFor,
           upload: addImageFile,

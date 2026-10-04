@@ -174,3 +174,14 @@ test('paste and drop images into a note', async ({ page }) => {
   await expect(source).toContainText('![](attachments/Red-dot.png)');
   await expect(source).toContainText('![](attachments/Second.png)');
 });
+
+test('Escape in the editor returns to the notes list', async ({ page }) => {
+  await openApp(page);
+  await page.locator('.ProseMirror').click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('listbox', { name: 'All Notes' })).toBeFocused();
+  await page.getByRole('radio', { name: 'Markdown' }).click();
+  await page.getByLabel('Markdown source').click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('listbox', { name: 'All Notes' })).toBeFocused();
+});

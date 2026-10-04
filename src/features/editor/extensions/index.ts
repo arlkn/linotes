@@ -12,6 +12,7 @@ import { SoftBreak } from './soft-break';
 export interface ExtensionOptions {
   placeholder?: string;
   onLink?: () => void;
+  onEscape?: () => void;
   /** Showing and adding images (not needed for parsing and tests). */
   images?: Partial<ImageOptions & ImageInputOptions>;
 }
@@ -54,6 +55,9 @@ export function createExtensions(options: ExtensionOptions = {}): AnyExtension[]
     Placeholder.configure({ placeholder: options.placeholder ?? 'Start writing…' }),
     CharacterCount,
     MarkdownPaste,
-    EditorShortcuts.configure({ onLink: options.onLink ?? (() => {}) }),
+    EditorShortcuts.configure({
+      onLink: options.onLink ?? (() => {}),
+      onEscape: options.onEscape ?? (() => {}),
+    }),
   ];
 }
