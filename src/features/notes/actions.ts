@@ -50,22 +50,27 @@ export async function refreshLibrary(): Promise<void> {
 
 // ----- Selection and views ------------------------------------------------------
 
+/** Bumped by every selection, so only the latest one decides what the list highlights. */
+let selectSequence = 0;
+
 export async function selectNote(
   id: string | null,
   options?: { focus?: 'title' | 'body' },
 ): Promise<boolean> {
   const library = useLibrary.getState();
+  const sequence = ++selectSequence;
   if (id === null) {
     if (!(await useEditorStore.getState().close())) return false;
-    library.select(null);
+    if (sequence === selectSequence) library.select(null);
     return true;
   }
   const previous = library.selectedId;
   library.select(id);
   const opened = await useEditorStore.getState().open(id, options);
   if (!opened) {
-    // Keep the selection in sync with what the editor actually shows.
-    library.select(useEditorStore.getState().session?.id ?? previous);
+    // Keep the selection in sync with what the editor actually shows, unless a
+    // newer selection (still loading) has taken over.
+    if (sequence === selectSequence) library.select(useEditorStore.getState().session?.id ?? previous);
     return false;
   }
   if (useSettings.getState().settings.lastNoteId !== id)
