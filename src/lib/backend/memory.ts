@@ -46,6 +46,8 @@ interface StoredNote extends NoteSummary {
 export interface MemoryBackendOptions {
   /** Populate with example notes (browser preview). */
   seed?: boolean;
+  /** Add this many generated notes, spread over 50 folders (performance testing). */
+  generatedNotes?: number;
   settings?: Partial<Settings>;
 }
 
@@ -219,6 +221,16 @@ export function createMemoryBackend(options: MemoryBackendOptions = {}): MemoryB
       createdAt: ago(60 * 24 * 40),
     });
     settings = { ...settings, onboarded: true };
+  }
+
+  for (let i = 0; i < (options.generatedNotes ?? 0); i += 1) {
+    const folder = `Generated ${i % 50}`;
+    const time = new Date(Date.UTC(2026, 0, 1) + i * 60_000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+    folders.add(folder);
+    addNote(folder, `Generated note ${i}`, `Some **Markdown** text for note ${i}.\n`, {
+      updatedAt: time,
+      createdAt: time,
+    });
   }
 
   const folderCounts = (): Map<string, number> => {

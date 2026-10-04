@@ -13,8 +13,15 @@ export function isTauri(): boolean {
 let current: Backend | null = null;
 
 export function getBackend(): Backend {
-  current ??= isTauri() ? createTauriBackend() : createMemoryBackend({ seed: true });
+  current ??= isTauri()
+    ? createTauriBackend()
+    : createMemoryBackend({ seed: true, generatedNotes: generatedNotesParam() });
   return current;
+}
+
+/** Browser preview only: `?notes=5000` adds generated notes to test with a large library. */
+function generatedNotesParam(): number {
+  return Math.min(Number(new URLSearchParams(window.location.search).get('notes')) || 0, 50_000);
 }
 
 /** Replace the backend (tests). */
