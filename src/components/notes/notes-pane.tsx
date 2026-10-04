@@ -29,6 +29,7 @@ import type { NoteSummary, SortDirection, SortField } from '@/types/domain';
 import { EmptyState } from './empty-state';
 import { Highlighted } from './highlight';
 import { NoteListItem } from './note-list-item';
+import { NoteListMenu } from './note-list-menu';
 import { SearchField } from './search-field';
 
 function ViewEmptyState({ view }: { view: View }) {
@@ -267,78 +268,80 @@ export function NotesPane({ sidebarHidden }: { sidebarHidden: boolean }) {
         </div>
       )}
 
-      <div
-        ref={listRef}
-        role="listbox"
-        tabIndex={0}
-        aria-label={title}
-        aria-activedescendant={
-          selectedId && items.some((n) => n.id === selectedId) ? `note-${selectedId}` : undefined
-        }
-        onKeyDown={onListKeyDown}
-        className="mt-2 min-h-0 flex-1 overflow-y-auto pb-3 outline-none focus-visible:[&_[aria-selected=true]]:ring-2 focus-visible:[&_[aria-selected=true]]:ring-accent"
-      >
-        {!loaded ? (
-          <div className="flex justify-center pt-10">
-            <Spinner />
-          </div>
-        ) : showingResults ? (
-          searchResults.length === 0 ? (
-            searching ? (
-              <div className="flex justify-center pt-10">
-                <Spinner />
-              </div>
+      <NoteListMenu notes={items}>
+        <div
+          ref={listRef}
+          role="listbox"
+          tabIndex={0}
+          aria-label={title}
+          aria-activedescendant={
+            selectedId && items.some((n) => n.id === selectedId) ? `note-${selectedId}` : undefined
+          }
+          onKeyDown={onListKeyDown}
+          className="mt-2 min-h-0 flex-1 overflow-y-auto pb-3 outline-none focus-visible:[&_[aria-selected=true]]:ring-2 focus-visible:[&_[aria-selected=true]]:ring-accent"
+        >
+          {!loaded ? (
+            <div className="flex justify-center pt-10">
+              <Spinner />
+            </div>
+          ) : showingResults ? (
+            searchResults.length === 0 ? (
+              searching ? (
+                <div className="flex justify-center pt-10">
+                  <Spinner />
+                </div>
+              ) : (
+                <EmptyState
+                  icon={SearchX}
+                  title={`No results for “${searchText.trim()}”`}
+                  description={
+                    scopeLabel && !searchEverywhere ? (
+                      <>
+                        Nothing in {scopeLabel} matches.{' '}
+                        <button
+                          type="button"
+                          className="font-medium text-accent-text hover:underline"
+                          onClick={() => setSearchEverywhere(true)}
+                        >
+                          Search all notes
+                        </button>
+                      </>
+                    ) : (
+                      'Try fewer or different words. Search looks at titles, text and folder names.'
+                    )
+                  }
+                />
+              )
             ) : (
-              <EmptyState
-                icon={SearchX}
-                title={`No results for “${searchText.trim()}”`}
-                description={
-                  scopeLabel && !searchEverywhere ? (
-                    <>
-                      Nothing in {scopeLabel} matches.{' '}
-                      <button
-                        type="button"
-                        className="font-medium text-accent-text hover:underline"
-                        onClick={() => setSearchEverywhere(true)}
-                      >
-                        Search all notes
-                      </button>
-                    </>
-                  ) : (
-                    'Try fewer or different words. Search looks at titles, text and folder names.'
-                  )
-                }
-              />
+              <div className="flex flex-col gap-0.5">
+                {searchResults.map((hit) => (
+                  <NoteListItem
+                    key={hit.note.id}
+                    note={hit.note}
+                    selected={hit.note.id === selectedId}
+                    showFolder
+                    title={<Highlighted value={hit.titleHighlight || hit.note.title || 'Untitled'} />}
+                    preview={hit.snippet ? <Highlighted value={hit.snippet} /> : undefined}
+                  />
+                ))}
+              </div>
             )
+          ) : viewNotes.length === 0 ? (
+            <ViewEmptyState view={view} />
           ) : (
             <div className="flex flex-col gap-0.5">
-              {searchResults.map((hit) => (
+              {viewNotes.map((note) => (
                 <NoteListItem
-                  key={hit.note.id}
-                  note={hit.note}
-                  selected={hit.note.id === selectedId}
-                  showFolder
-                  title={<Highlighted value={hit.titleHighlight || hit.note.title || 'Untitled'} />}
-                  preview={hit.snippet ? <Highlighted value={hit.snippet} /> : undefined}
+                  key={note.id}
+                  note={note}
+                  selected={note.id === selectedId}
+                  showFolder={showFolder}
                 />
               ))}
             </div>
-          )
-        ) : viewNotes.length === 0 ? (
-          <ViewEmptyState view={view} />
-        ) : (
-          <div className="flex flex-col gap-0.5">
-            {viewNotes.map((note) => (
-              <NoteListItem
-                key={note.id}
-                note={note}
-                selected={note.id === selectedId}
-                showFolder={showFolder}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </NoteListMenu>
     </div>
   );
 }
