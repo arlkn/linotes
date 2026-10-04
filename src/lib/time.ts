@@ -2,11 +2,17 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
+/** Make a value once, on first use. Intl formatters are slow to create and lists format thousands of dates. */
+function once<T>(create: () => T): () => T {
+  let value: T | undefined;
+  return () => (value ??= create());
+}
+
 /**
  * The interface is in English, so dates are formatted in English too, keeping
  * the user's regional conventions (24-hour clock, day/month order) when known.
  */
-function locale(): string {
+const locale = once((): string => {
   const system = typeof navigator !== 'undefined' ? navigator.language : 'en';
   try {
     const region = new Intl.Locale(system).maximize().region;
@@ -15,7 +21,38 @@ function locale(): string {
   } catch {
     return 'en';
   }
-}
+});
+
+/** Whether the user's own locale uses a 12-hour clock (the English UI follows it). */
+const systemUses12Hour = once((): boolean => {
+  try {
+    const system = typeof navigator !== 'undefined' ? navigator.language : 'en-US';
+    const cycle = new Intl.DateTimeFormat(system, { hour: 'numeric' }).resolvedOptions().hourCycle;
+    return cycle === 'h11' || cycle === 'h12';
+  } catch {
+    return false;
+  }
+});
+
+const clockFormat = once(
+  () => new Intl.DateTimeFormat(locale(), { hour: '2-digit', minute: '2-digit', hour12: systemUses12Hour() }),
+);
+const dayFormat = once(() => new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short' }));
+const dayYearFormat = once(
+  () => new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', year: 'numeric' }),
+);
+const fullFormat = once(
+  () =>
+    new Intl.DateTimeFormat(locale(), {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: systemUses12Hour(),
+    }),
+);
+const relativeFormat = once(() => new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' }));
 
 /** Compact timestamp for lists: "Just now", "5 min ago", "14:32", "Yesterday", "3 Mar", "3 Mar 2024". */
 export function formatListTime(iso: string, now: Date = new Date()): string {
@@ -25,45 +62,17 @@ export function formatListTime(iso: string, now: Date = new Date()): string {
   if (diff >= 0 && diff < MINUTE) return 'Just now';
   if (diff >= 0 && diff < HOUR) return `${Math.floor(diff / MINUTE)} min ago`;
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  if (date.getTime() >= startOfToday) {
-    return date.toLocaleTimeString(locale(), {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: systemUses12Hour(),
-    });
-  }
+  if (date.getTime() >= startOfToday) return clockFormat().format(date);
   if (date.getTime() >= startOfToday - DAY) return 'Yesterday';
   const sameYear = date.getFullYear() === now.getFullYear();
-  return date.toLocaleDateString(locale(), {
-    day: 'numeric',
-    month: 'short',
-    ...(sameYear ? {} : { year: 'numeric' }),
-  });
-}
-
-/** Whether the user's own locale uses a 12-hour clock (the English UI follows it). */
-function systemUses12Hour(): boolean {
-  try {
-    const system = typeof navigator !== 'undefined' ? navigator.language : 'en-US';
-    const cycle = new Intl.DateTimeFormat(system, { hour: 'numeric' }).resolvedOptions().hourCycle;
-    return cycle === 'h11' || cycle === 'h12';
-  } catch {
-    return false;
-  }
+  return (sameYear ? dayFormat() : dayYearFormat()).format(date);
 }
 
 /** Full timestamp for tooltips and the status bar. */
 export function formatFullTime(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString(locale(), {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: systemUses12Hour(),
-  });
+  return fullFormat().format(date);
 }
 
 /** Relative phrase such as "2 minutes ago" for the status bar. */
@@ -71,7 +80,7 @@ export function formatRelative(iso: string, now: Date = new Date()): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
   const diff = date.getTime() - now.getTime();
-  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' });
+  const rtf = relativeFormat();
   const abs = Math.abs(diff);
   if (abs < MINUTE) return 'just now';
   if (abs < HOUR) return rtf.format(Math.round(diff / MINUTE), 'minute');
