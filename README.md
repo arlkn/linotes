@@ -57,6 +57,7 @@ the Linux desktop. Linotes takes a different path:
 - Folders (nested), favorites, recently edited notes, and a Trash with restore
 - Drag notes onto folders, Favorites or the Trash
 - Sort by title, creation date or modification date
+- A quick switcher (`Ctrl+P`): type part of a title to jump straight to any note
 - Fast full-text search (SQLite FTS5) with highlighted results, scoped to the current view or
   across all notes; case- and accent-insensitive (`calisma` finds `çalışma`)
 
@@ -277,6 +278,7 @@ Git). Nothing else is needed. Details: [docs/STORAGE.md](docs/STORAGE.md).
 | Action | Shortcut |
 | --- | --- |
 | New note / new folder | `Ctrl+N` / `Ctrl+Shift+N` |
+| Go to a note by title | `Ctrl+P` |
 | Search | `Ctrl+F` |
 | Save now | `Ctrl+S` |
 | Favorite | `Ctrl+D` |
@@ -308,8 +310,9 @@ Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full picture.
 ## Roadmap
 
 - [x] First public release (0.1.0)
+- [x] Snap Store and APT repository — see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)
+- [x] Quick switcher and faster large libraries (0.2.0)
 - [ ] Signed release artifacts
-- [ ] Flathub and Snap Store packages — see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)
 - [ ] Tables and images in the rich text editor (they already work in Markdown mode)
 - [ ] Links between notes and backlinks
 - [ ] Tags from frontmatter as a sidebar filter

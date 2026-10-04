@@ -97,6 +97,12 @@ valid and they never conflict with unsaved typing.
   Tauri IPC, and an in-memory backend used by `npm run dev` in a browser and by tests.
 - **Editor**: [TipTap](https://tiptap.dev) (ProseMirror) for rich text; CodeMirror 6 for
   Markdown mode.
+- **Quick switcher** (`Ctrl+P`): `features/notes/quick-switch.ts` ranks the note summaries
+  already in memory by title, so it needs no backend call per keystroke.
+- **Large libraries**: the notes list has one shared right-click menu (a Radix menu per row
+  would add document-wide key listeners per note), and dates are formatted with cached
+  `Intl` formatters. When several selections overlap, only the newest one decides what the
+  list highlights.
 
 ### Markdown serialisation
 
@@ -121,8 +127,10 @@ Opening a note never modifies it; only editing does. Rich-mode edits normalise s
 
 Edits mark the note dirty; a save runs 800 ms after typing stops, and at least every 5 s during
 continuous typing. Pending edits are always flushed before switching notes, changing folders or
-closing the window (the window waits for the frontend to confirm). Failed saves are retried and
-shown in the status bar; conflicts and missing files show a banner with explicit choices.
+closing the window (the window waits for the frontend to confirm). Only one save runs at a
+time; a save that has to wait re-checks afterwards, so two saves never start from the same
+revision. Failed saves are retried and shown in the status bar; conflicts and missing files show
+a banner with explicit choices.
 
 ## Security model (summary)
 
@@ -146,3 +154,4 @@ See [SECURITY.md](../SECURITY.md) for limitations and how to report issues.
 | Autosave, conflicts, modes, settings persistence | Vitest | `src/features/**/**.test.ts` |
 | App integration (jsdom) | Vitest + Testing Library | `src/app/App.test.tsx` |
 | UI workflows in a real engine | Playwright (Chromium) | `e2e/` |
+| Timings with 5,000 notes | `cargo test --release large_library -- --ignored --nocapture`, `node scripts/bench-ui.mjs` | `src-tauri/src/storage/tests.rs`, `scripts/` |

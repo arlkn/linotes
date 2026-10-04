@@ -7,6 +7,7 @@ export const WELCOME_NOTE_BODY = `Linotes keeps your notes as **plain Markdown f
 - [ ] Create a note with **Ctrl+N**
 - [ ] Make a folder with **Ctrl+Shift+N**
 - [ ] Search everything with **Ctrl+F**
+- [ ] Jump to any note by its title with **Ctrl+P**
 - [ ] Star this note, then find it under *Favorites*
 
 ## Writing
