@@ -739,3 +739,19 @@ fn imported_notes_bring_their_images() {
          ![Fake](../img/not-really.png)\n![Outside](../../outside.png)\n![Web](https://x.org/a.png)\n"
     );
 }
+
+#[test]
+fn imported_files_bring_only_images_from_their_own_folder() {
+    let mut fx = Fixture::new();
+    let src = tempfile::tempdir().unwrap();
+    let notes = src.path().join("notes");
+    fs::create_dir_all(notes.join("pics")).unwrap();
+    fs::write(notes.join("pics/a.png"), PNG).unwrap();
+    fs::write(src.path().join("outside.png"), PNG).unwrap();
+    fs::write(notes.join("Note.md"), "![a](pics/a.png) ![b](../outside.png)\n").unwrap();
+
+    let report = fx.lib.import_files(&[notes.join("Note.md")], "").unwrap();
+    let note = fx.lib.read_note(&report.imported[0].id).unwrap();
+    assert_eq!(note.content, "![a](attachments/a.png) ![b](../outside.png)\n");
+    assert_eq!(fx.files("attachments"), vec!["a.png"]);
+}

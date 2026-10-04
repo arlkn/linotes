@@ -54,8 +54,8 @@ impl Library {
         let mut images = ImportedImages::default();
         for source in sources {
             // Images are copied from the imported file's own folder (and below).
-            let allowed = source.parent().and_then(|p| p.canonicalize().ok()).unwrap_or_default();
-            match self.import_one(source, &dir, target_folder, &allowed, &mut images) {
+            let allowed = source.parent().and_then(|p| p.canonicalize().ok());
+            match self.import_one(source, &dir, target_folder, allowed.as_deref(), &mut images) {
                 Ok(note) => report.imported.push(note),
                 Err(err) => {
                     report.failed.push(ImportIssue { source: source.display().to_string(), reason: err.to_string() })
@@ -144,7 +144,7 @@ impl Library {
                 report.skipped.push(ImportIssue { source: display, reason: "Not a Markdown or text file".into() });
             } else {
                 fs::create_dir_all(&target_dir).with_path("create folder", &target_dir)?;
-                match self.import_one(path, &target_dir, &target_rel, &source, &mut images) {
+                match self.import_one(path, &target_dir, &target_rel, Some(&source), &mut images) {
                     Ok(note) => report.imported.push(note),
                     Err(err) => report.failed.push(ImportIssue { source: display, reason: err.to_string() }),
                 }
@@ -160,7 +160,7 @@ impl Library {
         source: &Path,
         dir: &Path,
         folder_rel: &str,
-        image_root: &Path,
+        image_root: Option<&Path>,
         images: &mut ImportedImages,
     ) -> AppResult<ImportedNote> {
         let meta = fs::symlink_metadata(source).with_path("read", source)?;
@@ -192,8 +192,9 @@ impl Library {
             file.set(KEY_ID, Some(Scalar::str(uuid::Uuid::new_v4().to_string())));
             content = file.serialize();
         }
-        let source_dir = source.parent().unwrap_or(image_root);
-        if let Some(body) = self.import_images(&file.body, source_dir, image_root, folder_rel, images) {
+        if let (Some(root), Some(source_dir)) = (image_root, source.parent())
+            && let Some(body) = self.import_images(&file.body, source_dir, root, folder_rel, images)
+        {
             file.body = body;
             content = file.serialize();
         }
