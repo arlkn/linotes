@@ -64,6 +64,8 @@ export const useLibrary = create<LibraryState>()((set) => ({
   upsertNote: (note) =>
     set((state) => {
       const index = state.notes.findIndex((n) => n.id === note.id);
+      // Opening a note re-reads it; leave the lists alone when nothing changed.
+      if (index !== -1 && sameSummary(state.notes[index]!, note)) return {};
       const notes =
         index === -1 ? [...state.notes, note] : state.notes.map((n, i) => (i === index ? note : n));
       const searchResults =
@@ -93,3 +95,7 @@ export const useLibrary = create<LibraryState>()((set) => ({
       return { collapsedFolders: next };
     }),
 }));
+
+function sameSummary(a: NoteSummary, b: NoteSummary): boolean {
+  return (Object.keys(b) as (keyof NoteSummary)[]).every((key) => a[key] === b[key]);
+}

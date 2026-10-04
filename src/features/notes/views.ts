@@ -31,14 +31,19 @@ export function viewTitle(view: View): string {
 
 const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
+/** Plain code-unit order: right for ISO timestamps and ids, and much faster than `localeCompare`. */
+function compareCodes(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 export function compareNotes(field: SortField, direction: SortDirection) {
   const sign = direction === 'asc' ? 1 : -1;
   return (a: NoteSummary, b: NoteSummary): number => {
     let result: number;
     if (field === 'title') result = collator.compare(a.title || 'Untitled', b.title || 'Untitled');
-    else if (field === 'created') result = a.createdAt.localeCompare(b.createdAt);
-    else result = a.updatedAt.localeCompare(b.updatedAt);
-    return result * sign || a.id.localeCompare(b.id);
+    else if (field === 'created') result = compareCodes(a.createdAt, b.createdAt);
+    else result = compareCodes(a.updatedAt, b.updatedAt);
+    return result * sign || compareCodes(a.id, b.id);
   };
 }
 
@@ -66,7 +71,7 @@ export function notesForView(
     case 'trash':
       return notes
         .filter((n) => n.trashed)
-        .sort((a, b) => (b.trashedAt ?? '').localeCompare(a.trashedAt ?? '') || a.id.localeCompare(b.id));
+        .sort((a, b) => compareCodes(b.trashedAt ?? '', a.trashedAt ?? '') || compareCodes(a.id, b.id));
     case 'folder':
       result = notes.filter((n) => !n.trashed && n.folder === view.path);
       break;
