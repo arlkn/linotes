@@ -111,3 +111,18 @@ test('narrow windows hide the sidebar behind a button', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Favorites' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Library' })).toBeHidden();
 });
+
+test('go to a note by title with Ctrl+P', async ({ page }) => {
+  await openApp(page);
+  await page.keyboard.press('Control+p');
+  const box = page.getByRole('combobox', { name: 'Go to note' });
+  await box.fill('arch');
+  await expect(page.getByRole('option', { name: /Linotes architecture/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.keyboard.press('Enter');
+  await expect(box).toBeHidden();
+  await expect(page.getByLabel('Note title')).toHaveValue('Linotes architecture');
+  await expect(page.locator('.ProseMirror')).toBeFocused();
+});

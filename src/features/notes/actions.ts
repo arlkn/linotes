@@ -84,6 +84,14 @@ export function setView(view: View): void {
   if (library.searchText) void runSearch(library.searchText);
 }
 
+/** Open a note picked by title (quick switcher), switching to All Notes if the current view hides it. */
+export async function goToNote(id: string): Promise<void> {
+  const library = useLibrary.getState();
+  if (library.searchText) clearSearch();
+  if (!visibleNotes().some((n) => n.id === id)) library.setView({ kind: 'all' });
+  await selectNote(id, { focus: 'body' });
+}
+
 /** Select the note after (or before) `id` in the current list — used after removing it. */
 async function selectNeighbour(id: string, list: NoteSummary[]): Promise<void> {
   const index = list.findIndex((n) => n.id === id);

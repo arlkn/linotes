@@ -65,6 +65,8 @@ export function useGlobalShortcuts(): void {
       if (matches(event, { key: 'n', ctrl: true })) return run(() => void createNote());
       if (matches(event, { key: 'n', ctrl: true, shift: true })) return run(() => void createFolder(''));
       if (matches(event, { key: 'f', ctrl: true })) return run(() => useUi.getState().focusSearch());
+      if (matches(event, { key: 'p', ctrl: true }))
+        return run(() => useUi.getState().setQuickSwitcherOpen(true));
       if (matches(event, { key: 's', ctrl: true })) return run(() => void useEditorStore.getState().save());
       if (matches(event, { key: ',', ctrl: true })) return run(() => useUi.getState().openSettings());
       if (matches(event, { key: 'm', ctrl: true, shift: true })) {

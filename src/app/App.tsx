@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Logo } from '@/components/brand/logo';
 import { DialogHost } from '@/components/dialogs/dialog-host';
 import { AppShell } from '@/components/layout/app-shell';
+import { QuickSwitcher } from '@/components/notes/quick-switcher';
 import { SettingsDialog } from '@/components/settings/settings-dialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/toaster';
@@ -83,6 +84,7 @@ export function App() {
         </div>
       </div>
       <SettingsDialog />
+      <QuickSwitcher />
       <DialogHost />
       <Toaster />
     </TooltipProvider>

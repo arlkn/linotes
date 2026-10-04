@@ -90,4 +90,16 @@ describe('Linotes app', () => {
     await user.click(screen.getByRole('radio', { name: 'Rich text' }));
     expect(await screen.findByRole('textbox', { name: 'Note content' })).toBeInTheDocument();
   });
+
+  it('goes to a note by title with Ctrl+P, leaving a view that hides it', async () => {
+    const user = userEvent.setup();
+    await user.click(within(nav()).getByRole('button', { name: /^Trash/ }));
+    await user.keyboard('{Control>}p{/Control}');
+    const box = await screen.findByRole('combobox', { name: 'Go to note' });
+    await user.type(box, 'menem');
+    await user.keyboard('{Enter}');
+    await waitFor(() => expect(screen.getByLabelText('Note title')).toHaveValue('Menemen'));
+    expect(screen.queryByRole('combobox', { name: 'Go to note' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'All Notes' })).toBeInTheDocument();
+  });
 });

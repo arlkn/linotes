@@ -24,6 +24,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: 'Navigation',
     shortcuts: [
+      { keys: ['Ctrl', 'P'], description: 'Go to a note by title' },
       { keys: ['Ctrl', 'F'], description: 'Search notes' },
       { keys: ['↑', '↓'], description: 'Move between notes or search results' },
       { keys: ['Enter'], description: 'Edit the selected note' },

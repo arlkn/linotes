@@ -12,6 +12,7 @@ interface ModalProps {
   /** Hide the visible title (it stays available to screen readers). */
   hideTitle?: boolean;
   onOpenAutoFocus?: (event: Event) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 /** Centered dialog with a dimmed backdrop, focus trap and Esc to close. */
@@ -24,6 +25,7 @@ export function Modal({
   className,
   hideTitle,
   onOpenAutoFocus,
+  onCloseAutoFocus,
 }: ModalProps) {
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
@@ -32,6 +34,7 @@ export function Modal({
         <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center p-4">
           <D.Content
             onOpenAutoFocus={onOpenAutoFocus}
+            onCloseAutoFocus={onCloseAutoFocus}
             className={cn(
               'pointer-events-auto flex max-h-[calc(100vh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-line bg-surface text-fg shadow-popover animate-pop-in focus:outline-none',
               className,

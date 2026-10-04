@@ -5,6 +5,7 @@
  */
 import type { Backend } from './types';
 import { BackendError } from './errors';
+import { fold } from '@/lib/fold';
 import { WELCOME_NOTE_BODY, WELCOME_NOTE_TITLE } from '@/features/onboarding/welcome';
 import type {
   FolderInfo,
@@ -58,10 +59,6 @@ export interface MemoryBackend extends Backend {
 
 function now(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-}
-
-function fold(text: string): string {
-  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/ı/g, 'i');
 }
 
 function plain(markdown: string): string {
