@@ -2,7 +2,7 @@ import { convertFileSrc, invoke, type InvokeArgs, type InvokeOptions } from '@ta
 import { listen } from '@tauri-apps/api/event';
 import type { Backend } from './types';
 import { toBackendError } from './errors';
-import type { SyncReport } from '@/types/domain';
+import type { FilesDropped, SyncReport } from '@/types/domain';
 
 async function call<T>(command: string, args?: InvokeArgs, options?: InvokeOptions): Promise<T> {
   try {
@@ -41,6 +41,9 @@ export function createTauriBackend(): Backend {
         headers: { 'x-note-id': encodeURIComponent(noteId), 'x-file-name': encodeURIComponent(name) },
       }),
     chooseImage: (noteId) => call('choose_image', { noteId }),
+    addDroppedFiles: (noteId, dropId) => call('add_dropped_files', { noteId, dropId }),
+    pasteFiles: (noteId) => call('paste_files', { noteId }),
+    openLinkedFile: (noteId, link) => call('open_linked_file', { noteId, link }),
     imageUrl: (path) => convertFileSrc(path, 'linotes-image'),
 
     getSettings: () => call('get_settings'),
@@ -68,5 +71,6 @@ export function createTauriBackend(): Backend {
 
     onLibraryChanged: (handler) => listen<SyncReport>('library-changed', (event) => handler(event.payload)),
     onCloseRequested: (handler) => listen('app-close-requested', () => handler()),
+    onFilesDropped: (handler) => listen<FilesDropped>('files-dropped', (event) => handler(event.payload)),
   };
 }

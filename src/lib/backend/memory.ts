@@ -414,12 +414,20 @@ export function createMemoryBackend(options: MemoryBackendOptions = {}): MemoryB
       let path = `attachments/${stem}.${extension}`;
       for (let n = 2; images.has(path); n += 1) path = `attachments/${stem}-${n}.${extension}`;
       images.set(path, { blob: new Blob([bytes.slice()], { type }), url: null });
-      return { link: relativeImagePath(note.folder, path), path };
+      return { link: relativeImagePath(note.folder, path), path, name, image: true };
     },
 
+    // The browser preview has no file manager drops, system clipboard or apps to open files with.
     async chooseImage() {
       return null;
     },
+    async addDroppedFiles() {
+      return { added: [], failed: [] };
+    },
+    async pasteFiles() {
+      return { added: [], failed: [] };
+    },
+    async openLinkedFile() {},
 
     imageUrl(path) {
       const image = images.get(path);
@@ -526,6 +534,9 @@ export function createMemoryBackend(options: MemoryBackendOptions = {}): MemoryB
     async confirmClose() {},
     async cancelClose() {},
 
+    async onFilesDropped() {
+      return () => {};
+    },
     async onLibraryChanged(handler) {
       changeHandlers.add(handler);
       return () => changeHandlers.delete(handler);

@@ -19,7 +19,7 @@ Use the toolbar or Markdown shortcuts while you type: \`#\` for a heading, \`-\`
 ls ~/Documents/Linotes
 \`\`\`
 
-To add a picture, paste it (**Ctrl+V**), drag it in from Files, or use the image button in the toolbar. Images are saved as ordinary files in an \`attachments\` folder inside your notes folder.
+To add a picture or a file, paste it (**Ctrl+V**), drag it in from Files, or use the image button in the toolbar. Everything is saved as ordinary files in an \`attachments\` folder inside your notes folder; Ctrl+Click a file link to open it.
 
 Prefer raw Markdown? Switch to **Markdown mode** with **Ctrl+Shift+M**.
 

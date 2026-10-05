@@ -5,12 +5,17 @@ import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, placeholder } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import { useEffect, useRef } from 'react';
-import { captureNativePaste, filesIn } from '@/features/editor/extensions/image-input';
-import { addImageFile } from '@/features/editor/images';
-import { imageDestination } from '@/features/editor/markdown/serialize';
+import { filesIn, isEmptyPaste } from '@/features/editor/extensions/image-input';
+import {
+  addImageFile,
+  markdownForFiles,
+  pasteSystemFiles,
+  registerFileInserter,
+} from '@/features/editor/files';
 import { countText, markdownToPlainText } from '@/features/editor/stats';
 import { registerContentProvider, useEditorStore, type EditorSession } from '@/features/editor/store';
 import { useSettings } from '@/features/settings/store';
+import type { AddedFile } from '@/types/domain';
 import { TitleField } from './title-field';
 
 const markdownHighlight = HighlightStyle.define([
@@ -29,33 +34,42 @@ const markdownHighlight = HighlightStyle.define([
 
 const STATS_DELAY_MS = 200;
 
-/** Paste or drop image files: each is stored and a Markdown image inserted where it landed. */
-const imageFiles = EditorView.domEventHandlers({
+/**
+ * Paste or drop images and files: each is stored and Markdown for it inserted
+ * where it landed. In WebKitGTK a paste of copied files or a copied picture
+ * reaches the page empty; the backend reads the clipboard instead.
+ */
+const fileInput = EditorView.domEventHandlers({
   paste(event, view) {
+    const at = view.state.selection.main.head;
     const files = filesIn(event.clipboardData);
-    if (files.length === 0) return false;
-    event.preventDefault();
-    void insertImages(view, files, view.state.selection.main.head);
+    if (files.length > 0) void uploadAndInsert(view, files, at);
+    else if (isEmptyPaste(event.clipboardData))
+      void pasteSystemFiles().then((added) => insertFiles(view, added, at));
+    else return false;
     return true;
   },
   drop(event, view) {
     const files = filesIn(event.dataTransfer);
     if (files.length === 0) return false;
-    event.preventDefault();
     const at = view.posAtCoords({ x: event.clientX, y: event.clientY }) ?? view.state.selection.main.head;
-    void insertImages(view, files, at);
+    void uploadAndInsert(view, files, at);
     return true;
   },
 });
 
-async function insertImages(view: EditorView, files: File[], at: number): Promise<void> {
-  const links: string[] = [];
+async function uploadAndInsert(view: EditorView, files: File[], at: number): Promise<void> {
+  const added: AddedFile[] = [];
   for (const file of files) {
-    const link = await addImageFile(file);
-    if (link) links.push(link);
+    const result = await addImageFile(file);
+    if (result) added.push(result);
   }
-  if (links.length === 0 || !view.dom.isConnected) return;
-  const text = links.map((link) => `![](${imageDestination(link)})`).join(' ');
+  insertFiles(view, added, at);
+}
+
+function insertFiles(view: EditorView, files: AddedFile[], at: number): void {
+  if (files.length === 0 || !view.dom.isConnected) return;
+  const text = markdownForFiles(files);
   const from = Math.min(at, view.state.doc.length);
   view.dispatch({ changes: { from, insert: text }, selection: { anchor: from + text.length } });
   view.focus();
@@ -96,7 +110,7 @@ export function SourceEditor({ session }: { session: EditorSession }) {
           spellcheckCompartment.current.of(
             EditorView.contentAttributes.of({ spellcheck: String(spellcheck) }),
           ),
-          imageFiles,
+          fileInput,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               markDirty();
@@ -109,21 +123,12 @@ export function SourceEditor({ session }: { session: EditorSession }) {
     viewRef.current = view;
     updateStats(session.content);
     const unregister = registerContentProvider(session, () => view.state.doc.toString());
-    // WebKitGTK gives the page a pasted screenshot only by pasting it itself, and
-    // CodeMirror cancels that for a clipboard that looks empty: catch it first.
-    const onPaste = (event: ClipboardEvent) => {
-      if (!event.clipboardData || event.clipboardData.types.length > 0 || session.trashed) return;
-      event.stopPropagation();
-      const at = view.state.selection.main.head;
-      void captureNativePaste().then((files) => {
-        view.focus();
-        if (files.length > 0) void insertImages(view, files, at);
-      });
-    };
-    const element = host.current;
-    element.addEventListener('paste', onPaste, true);
+    // Files dropped from the file manager arrive outside the page (see features/editor/files.ts).
+    const unregisterInserter = registerFileInserter((files, at) =>
+      insertFiles(view, files, (at && view.posAtCoords(at)) ?? view.state.selection.main.head),
+    );
     return () => {
-      element.removeEventListener('paste', onPaste, true);
+      unregisterInserter();
       if (statsTimer) clearTimeout(statsTimer);
       unregister();
       view.destroy();

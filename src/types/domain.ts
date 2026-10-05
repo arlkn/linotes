@@ -39,12 +39,27 @@ export interface SavedNote {
   path: string;
 }
 
-/** An image stored for a note (in `attachments/`). */
-export interface SavedImage {
+/** A file added to a note (stored in `attachments/`): an image to show, or a file to link to. */
+export interface AddedFile {
   /** The link to put in the note, relative to the note's folder. */
   link: string;
-  /** Library-relative path of the image file. */
+  /** Library-relative path of the stored file. */
   path: string;
+  /** The file's own name, for the link text. */
+  name: string;
+  image: boolean;
+}
+
+export interface AddedFiles {
+  added: AddedFile[];
+  failed: { name: string; reason: string }[];
+}
+
+/** Files were dropped on the window at (x, y); claim them with `addDroppedFiles(noteId, id)`. */
+export interface FilesDropped {
+  id: number;
+  x: number;
+  y: number;
 }
 
 export interface FolderInfo {

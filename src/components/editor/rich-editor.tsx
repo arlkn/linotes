@@ -3,7 +3,15 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { openExternalLink } from '@/features/app/lifecycle';
 import { createExtensions } from '@/features/editor/extensions';
-import { addImageFile, imageUrlFor } from '@/features/editor/images';
+import { insertAddedFiles } from '@/features/editor/extensions/image-input';
+import {
+  addImageFile,
+  imageUrlFor,
+  openLinkedFile,
+  pasteSystemFiles,
+  registerFileInserter,
+} from '@/features/editor/files';
+import { isRelativePath } from '@/features/editor/image-paths';
 import { serializeMarkdown } from '@/features/editor/markdown/serialize';
 import { countText } from '@/features/editor/stats';
 import { registerContentProvider, useEditorStore, type EditorSession } from '@/features/editor/store';
@@ -38,6 +46,7 @@ export function RichEditor({ session }: { session: EditorSession }) {
         images: {
           resolveUrl: imageUrlFor,
           upload: addImageFile,
+          pasteFromSystem: pasteSystemFiles,
           openExternal: (url) => void openExternalLink(url),
         },
       }),
@@ -74,7 +83,8 @@ export function RichEditor({ session }: { session: EditorSession }) {
           const href = link?.attrs.href as string | undefined;
           if (!href) return false;
           if (isExternalHref(href)) void openExternalLink(href);
-          else toast.info('Only web and email links can be opened', href);
+          else if (isRelativePath(href)) void openLinkedFile(href);
+          else toast.info('This link can’t be opened', href);
           return true;
         },
         handleDOMEvents: {
@@ -102,6 +112,17 @@ export function RichEditor({ session }: { session: EditorSession }) {
   useEffect(
     () => registerContentProvider({ id, generation }, () => serializeMarkdown(editor.state.doc)),
     [editor, id, generation],
+  );
+
+  // Files dropped from the file manager arrive outside the page (see features/editor/files.ts).
+  useEffect(
+    () =>
+      registerFileInserter((files, at) => {
+        if (editor.isDestroyed) return;
+        const pos = at ? (editor.view.posAtCoords({ left: at.x, top: at.y })?.pos ?? null) : null;
+        insertAddedFiles(editor.view, files, pos);
+      }),
+    [editor],
   );
 
   useEffect(() => {

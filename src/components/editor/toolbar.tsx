@@ -21,8 +21,8 @@ import {
   Undo2,
 } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
-import { chooseImageFile } from '@/features/editor/images';
-import { normalizeImageSrc } from '@/features/editor/markdown/tokenizer';
+import { insertAddedFiles } from '@/features/editor/extensions/image-input';
+import { chooseImageFile } from '@/features/editor/files';
 
 function Divider() {
   return <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-line" />;
@@ -150,12 +150,9 @@ export function FormattingToolbar({ editor, onLink }: { editor: Editor; onLink: 
         icon={ImagePlus}
         disabled={disabled}
         onClick={() =>
-          void chooseImageFile().then((link) => {
+          void chooseImageFile().then((file) => {
             // The note may have been closed while the file chooser was open.
-            if (!link || editor.isDestroyed) return;
-            chain()
-              .insertContent({ type: 'image', attrs: { src: normalizeImageSrc(link) } })
-              .run();
+            if (file && !editor.isDestroyed) insertAddedFiles(editor.view, [file], null);
           })
         }
       />

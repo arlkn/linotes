@@ -7,8 +7,10 @@ import type {
   LibraryStatus,
   Note,
   NoteSummary,
+  AddedFile,
+  AddedFiles,
+  FilesDropped,
   SaveNoteInput,
-  SavedImage,
   SavedNote,
   SearchHit,
   SearchQuery,
@@ -47,10 +49,16 @@ export interface Backend {
 
   searchNotes(query: SearchQuery): Promise<SearchHit[]>;
 
-  /** Store an image (pasted or dropped) for a note. */
-  saveImage(noteId: string, name: string, bytes: Uint8Array): Promise<SavedImage>;
+  /** Store an image the page has (pasted or dropped in the browser engine) for a note. */
+  saveImage(noteId: string, name: string, bytes: Uint8Array): Promise<AddedFile>;
   /** Pick an image with the file chooser and store it for a note. */
-  chooseImage(noteId: string): Promise<SavedImage | null>;
+  chooseImage(noteId: string): Promise<AddedFile | null>;
+  /** Store the files of a drop (see `onFilesDropped`) for a note. */
+  addDroppedFiles(noteId: string, dropId: number): Promise<AddedFiles>;
+  /** Store files copied in the file manager, or a copied picture, from the system clipboard. */
+  pasteFiles(noteId: string): Promise<AddedFiles>;
+  /** Open a file the note links to (or show it in Files if it could run a program). */
+  openLinkedFile(noteId: string, link: string): Promise<void>;
   /** URL the page can show the image at the library-relative `path` with. */
   imageUrl(path: string): string;
 
@@ -85,4 +93,6 @@ export interface Backend {
   onLibraryChanged(handler: (report: SyncReport) => void): Promise<Unlisten>;
   /** The user asked to close the window; save, then call `confirmClose`. */
   onCloseRequested(handler: () => void): Promise<Unlisten>;
+  /** Files from the file manager were dropped on the window (they never reach the page). */
+  onFilesDropped(handler: (drop: FilesDropped) => void): Promise<Unlisten>;
 }

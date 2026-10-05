@@ -1,6 +1,7 @@
 import { Editor } from '@tiptap/core';
 import { Fragment, Slice } from '@tiptap/pm/model';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { AddedFile } from '@/types/domain';
 import { serializeMarkdown } from '../markdown/serialize';
 import { createExtensions } from '.';
 
@@ -11,10 +12,15 @@ afterEach(() => {
   editor = null;
 });
 
-function createEditor(upload: (file: File) => Promise<string | null>) {
+const added = (link: string, image = true, name = ''): AddedFile => ({ link, path: link, name, image });
+
+function createEditor(
+  upload: (file: File) => Promise<AddedFile | null>,
+  pasteFromSystem: () => Promise<AddedFile[]> = async () => [],
+) {
   editor = new Editor({
     extensions: createExtensions({
-      images: { upload, resolveUrl: (src) => `blob:shown/${src}`, openExternal: vi.fn() },
+      images: { upload, pasteFromSystem, resolveUrl: (src) => `blob:shown/${src}`, openExternal: vi.fn() },
     }),
     content: '<p>Before after</p>',
   });
@@ -23,14 +29,19 @@ function createEditor(upload: (file: File) => Promise<string | null>) {
 
 /** What a paste or drop of `files` looks like to ProseMirror. */
 function transfer(files: File[]) {
-  return { items: [], files, getData: () => '' } as unknown as DataTransfer;
+  return {
+    items: [],
+    files,
+    types: files.length > 0 ? ['Files'] : [],
+    getData: () => '',
+  } as unknown as DataTransfer;
 }
 
 const png = () => new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'Shot.png', { type: 'image/png' });
 
 describe('adding images', () => {
   it('pastes image files as Markdown images at the cursor', async () => {
-    const upload = vi.fn(async () => 'attachments/Shot.png');
+    const upload = vi.fn(async () => added('attachments/Shot.png'));
     const view = createEditor(upload).view;
     editor!.commands.setTextSelection(8);
     const handled = view.someProp('handlePaste', (paste) =>
@@ -47,8 +58,14 @@ describe('adding images', () => {
 
   it('leaves text pastes and moves of images inside the note to the editor', () => {
     const view = createEditor(vi.fn()).view;
+    const text = {
+      items: [],
+      files: [],
+      types: ['text/plain'],
+      getData: (type: string) => (type === 'text/plain' ? 'hi' : ''),
+    } as unknown as DataTransfer;
     const paste = view.someProp('handlePaste', (handle) =>
-      handle(view, { clipboardData: transfer([]) } as unknown as ClipboardEvent, Slice.empty),
+      handle(view, { clipboardData: text } as unknown as ClipboardEvent, Slice.empty),
     );
     const move = view.someProp('handleDrop', (handle) =>
       handle(view, { dataTransfer: transfer([png()]) } as unknown as DragEvent, Slice.empty, true),
@@ -67,12 +84,18 @@ describe('adding images', () => {
     expect(serializeMarkdown(view.state.doc)).toBe('Before after\n');
   });
 
-  it('stores images pasted as embedded pictures (how WebKitGTK pastes a screenshot)', async () => {
+  it('stores pictures embedded in pasted HTML as files', async () => {
     const upload = vi.fn(async (file: File) =>
-      file.type === 'image/png' ? 'attachments/image-1.png' : null,
+      file.type === 'image/png' ? added('attachments/image-1.png') : null,
     );
     const view = createEditor(upload).view;
     const { schema } = view.state;
+    const html = {
+      items: [],
+      files: [],
+      types: ['text/html'],
+      getData: (type: string) => (type === 'text/html' ? '<img src="data:image/png;base64,…">' : ''),
+    } as unknown as DataTransfer;
     const pasted = (src: string) =>
       new Slice(
         Fragment.from(schema.nodes.paragraph!.create(null, schema.nodes.image!.create({ src }))),
@@ -83,7 +106,7 @@ describe('adding images', () => {
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
     editor!.commands.setTextSelection(8);
     const handled = view.someProp('handlePaste', (paste) =>
-      paste(view, { clipboardData: transfer([]) } as unknown as ClipboardEvent, pasted(png)),
+      paste(view, { clipboardData: html } as unknown as ClipboardEvent, pasted(png)),
     );
     expect(handled).toBe(true);
     await vi.waitFor(() => expect(serializeMarkdown(view.state.doc)).toContain('attachments/image-1.png'));
@@ -94,12 +117,56 @@ describe('adding images', () => {
     view.someProp('handlePaste', (paste) =>
       paste(
         view,
-        { clipboardData: transfer([]) } as unknown as ClipboardEvent,
+        { clipboardData: html } as unknown as ClipboardEvent,
         pasted('data:image/gif;base64,R0lGOD'),
       ),
     );
     await vi.waitFor(() => expect(upload).toHaveBeenCalledTimes(2));
     expect(serializeMarkdown(view.state.doc)).not.toContain('data:');
+  });
+
+  it('pastes files copied in the file manager, read from the system clipboard', async () => {
+    const pasteFromSystem = vi.fn(async () => [
+      added('attachments/Report.pdf', false, 'Q3 [final].pdf'),
+      added('attachments/photo.jpg'),
+    ]);
+    const view = createEditor(vi.fn(), pasteFromSystem).view;
+    editor!.commands.setTextSelection(8);
+    // What WebKitGTK hands the page for copied files: a type, but no content.
+    const copied = {
+      items: [],
+      files: [],
+      types: ['text/uri-list'],
+      getData: () => '',
+    } as unknown as DataTransfer;
+    const handled = view.someProp('handlePaste', (paste) =>
+      paste(view, { clipboardData: copied } as unknown as ClipboardEvent, Slice.empty),
+    );
+    expect(handled).toBe(true);
+    await vi.waitFor(() => expect(serializeMarkdown(view.state.doc)).toContain('photo.jpg'));
+    expect(serializeMarkdown(view.state.doc)).toBe(
+      'Before [Q3 \\[final\\].pdf](attachments/Report.pdf) ![](attachments/photo.jpg)after\n',
+    );
+  });
+
+  it('keeps text typed after an inserted file link out of the link', async () => {
+    const pasteFromSystem = vi.fn(async () => [added('attachments/Report.pdf', false, 'Report.pdf')]);
+    const view = createEditor(vi.fn(), pasteFromSystem).view;
+    editor!.commands.setTextSelection(8);
+    const copied = {
+      items: [],
+      files: [],
+      types: ['text/uri-list'],
+      getData: () => '',
+    } as unknown as DataTransfer;
+    view.someProp('handlePaste', (paste) =>
+      paste(view, { clipboardData: copied } as unknown as ClipboardEvent, Slice.empty),
+    );
+    await vi.waitFor(() => expect(serializeMarkdown(view.state.doc)).toContain('Report.pdf'));
+    view.dispatch(view.state.tr.insertText(' notes'));
+    expect(serializeMarkdown(view.state.doc)).toBe(
+      'Before [Report.pdf](attachments/Report.pdf) notesafter\n',
+    );
   });
 
   it('shows web images as a card instead of loading them', () => {

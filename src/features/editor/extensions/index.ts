@@ -50,7 +50,10 @@ export function createExtensions(options: ExtensionOptions = {}): AnyExtension[]
       resolveUrl: options.images?.resolveUrl ?? null,
       openExternal: options.images?.openExternal ?? null,
     }),
-    ImageInput.configure({ upload: options.images?.upload ?? null }),
+    ImageInput.configure({
+      upload: options.images?.upload ?? null,
+      pasteFromSystem: options.images?.pasteFromSystem ?? null,
+    }),
     SoftBreak,
     Placeholder.configure({ placeholder: options.placeholder ?? 'Start writing…' }),
     CharacterCount,

@@ -1,5 +1,6 @@
 import { errorMessage, getBackend, type Unlisten } from '@/lib/backend';
 import type { LibraryStatus } from '@/types/domain';
+import { addDroppedFiles } from '@/features/editor/files';
 import { useEditorStore } from '@/features/editor/store';
 import { WELCOME_NOTE_BODY, WELCOME_NOTE_TITLE } from '@/features/onboarding/welcome';
 import { loadLibraryData, refreshLibrary, selectNote } from '@/features/notes/actions';
@@ -37,6 +38,7 @@ export async function bootstrap(): Promise<void> {
     }),
   );
   listeners.push(await backend.onCloseRequested(() => void requestQuit()));
+  listeners.push(await backend.onFilesDropped((drop) => void addDroppedFiles(drop)));
   await backend.appReady();
 }
 
