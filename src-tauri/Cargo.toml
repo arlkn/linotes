@@ -1,6 +1,6 @@
 [package]
 name = "linotes"
-version = "0.1.6"
+version = "0.1.7"
 description = "Local-first Markdown notes for Linux"
 authors = ["Aral Alkan", "Linotes contributors"]
 license = "MIT"

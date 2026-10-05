@@ -72,6 +72,13 @@
     <color type="primary" scheme_preference="dark">#7a2e12</color>
   </branding>
   <releases>
+    <release version="0.1.7" type="stable" date="2026-10-05">
+      <url type="details">https://github.com/arlkn/linotes/releases/tag/v0.1.7</url>
+      <description>
+        <p>Attach any file to a note by dragging it in from Files or pasting it. Images show in
+        the note; other files become links that open in their usual app.</p>
+      </description>
+    </release>
     <release version="0.1.6" type="stable" date="2026-10-05">
       <url type="details">https://github.com/arlkn/linotes/releases/tag/v0.1.6</url>
       <description>

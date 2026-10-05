@@ -6,6 +6,22 @@ All notable changes to Linotes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-10-05
+
+### Added
+
+- Attach any file to a note: drag files in from Files, or copy them there and paste with
+  `Ctrl+V`. Images show in the note; PDFs, documents and other files (up to 100 MB) are saved in
+  the `attachments` folder and appear as links named after the file. `Ctrl+Click` opens them in
+  their usual app; programs and scripts are shown in Files instead of being run.
+
+### Fixed
+
+- Dragging pictures in from Files inserted the file's path instead of the picture.
+- Pasting a JPEG, PDF or other file copied in Files did nothing.
+- Moving a note to another folder now keeps its links to files working, not only its images.
+- Text typed right after an inserted file link no longer becomes part of the link.
+
 ## [0.1.6] - 2026-10-05
 
 ### Changed
@@ -116,7 +132,8 @@ First public release.
 - Settings for appearance, editor, storage and keyboard shortcuts.
 - Packaging for `.deb`, `.rpm` and AppImage; draft Flatpak manifest.
 
-[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/arlkn/linotes/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/arlkn/linotes/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/arlkn/linotes/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/arlkn/linotes/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/arlkn/linotes/compare/v0.1.3...v0.1.4
