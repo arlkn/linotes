@@ -13,7 +13,9 @@ mod sync;
 #[cfg(test)]
 mod tests;
 
-pub use attachments::{IMAGE_EXTENSIONS, ImportedImages, MAX_IMAGE_BYTES, SavedImage, percent_decode, read_image};
+pub use attachments::{
+    AddedFile, IMAGE_EXTENSIONS, ImportedImages, LinkedFile, MAX_IMAGE_BYTES, percent_decode, read_image,
+};
 pub use folders::{DeleteFolderReport, FolderInfo};
 pub use library::Library;
 pub(crate) use library::lowercase_names;

@@ -8,7 +8,7 @@ use crate::settings::Settings;
 use crate::storage::{Library, SkippedFile};
 use serde::Serialize;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard};
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -22,6 +22,9 @@ pub struct AppState {
     watcher: Mutex<Option<LibraryWatcher>>,
     /// Set when the user asked to close the window and the frontend is flushing saves.
     pub close_pending: AtomicBool,
+    /// The last files dropped on the window, until the page claims them by id.
+    dropped: Mutex<Option<(u64, Vec<PathBuf>)>>,
+    next_drop: AtomicU64,
 }
 
 /// What the frontend needs to know about the notes folder.
@@ -53,6 +56,8 @@ impl AppState {
             status: Mutex::new(LibraryStatus::default()),
             watcher: Mutex::new(None),
             close_pending: AtomicBool::new(false),
+            dropped: Mutex::new(None),
+            next_drop: AtomicU64::new(1),
         }
     }
 
@@ -60,6 +65,23 @@ impl AppState {
         match lock(&self.settings).notes_dir.clone() {
             Some(dir) => (PathBuf::from(dir), false),
             None => (self.paths.default_notes_dir.clone(), true),
+        }
+    }
+
+    /// Keep the paths of a drop (replacing any unclaimed one); returns its id.
+    pub fn keep_dropped_files(&self, paths: Vec<PathBuf>) -> u64 {
+        let id = self.next_drop.fetch_add(1, Ordering::Relaxed);
+        *lock(&self.dropped) = Some((id, paths));
+        id
+    }
+
+    /// The paths of drop `id`, once.
+    pub fn take_dropped_files(&self, id: u64) -> Option<Vec<PathBuf>> {
+        let mut dropped = lock(&self.dropped);
+        if dropped.as_ref().is_some_and(|(kept, _)| *kept == id) {
+            dropped.take().map(|(_, paths)| paths)
+        } else {
+            None
         }
     }
 
@@ -145,5 +167,21 @@ fn on_external_change(app: &AppHandle) {
         }
         Some(Err(err)) => log::warn!("Index sync after an outside change failed: {err}"),
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dropped_files_are_claimed_once_by_their_id() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState::new(AppPaths::in_profile(dir.path().to_path_buf()));
+        let first = state.keep_dropped_files(vec![PathBuf::from("/a.png")]);
+        let second = state.keep_dropped_files(vec![PathBuf::from("/b.pdf")]);
+        assert_eq!(state.take_dropped_files(first), None, "a newer drop replaces an unclaimed one");
+        assert_eq!(state.take_dropped_files(second), Some(vec![PathBuf::from("/b.pdf")]));
+        assert_eq!(state.take_dropped_files(second), None);
     }
 }

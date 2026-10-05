@@ -755,3 +755,46 @@ fn imported_files_bring_only_images_from_their_own_folder() {
     assert_eq!(note.content, "![a](attachments/a.png) ![b](../outside.png)\n");
     assert_eq!(fx.files("attachments"), vec!["a.png"]);
 }
+
+#[test]
+fn files_of_any_kind_are_attached_and_only_safe_ones_open() {
+    use std::os::unix::fs::PermissionsExt;
+    let mut fx = Fixture::new();
+    fx.lib.create_folder("", "Work").unwrap();
+    let note = fx.lib.create_note("Work", "Plan", "").unwrap();
+    let id = note.summary.id.clone();
+    let src = tempfile::tempdir().unwrap();
+    let pdf = src.path().join("Quarterly Report.pdf");
+    let photo = src.path().join("Holiday photo.jpeg");
+    let readme = src.path().join("README");
+    fs::write(&pdf, b"%PDF-1.7\n").unwrap();
+    fs::write(&photo, [0xFF, 0xD8, 0xFF, 0xE0, 0, 0x10]).unwrap();
+    fs::write(&readme, "Read me\n").unwrap();
+
+    let file = fx.lib.add_file(&id, &pdf).unwrap();
+    assert!(!file.image);
+    assert_eq!(
+        (file.path.as_str(), file.link.as_str()),
+        ("attachments/Quarterly-Report.pdf", "../attachments/Quarterly-Report.pdf")
+    );
+    assert_eq!(file.name, "Quarterly Report.pdf");
+    let image = fx.lib.add_file(&id, &photo).unwrap();
+    assert!(image.image);
+    assert_eq!(image.path, "attachments/Holiday-photo.jpg");
+    assert_eq!(fx.lib.add_file(&id, &readme).unwrap().path, "attachments/README");
+    assert!(fx.lib.add_file(&id, src.path()).is_err(), "folders can't be added");
+
+    // Linked files open in their usual app, unless they could run a program.
+    assert_eq!(fx.lib.linked_file(&id, &file.link).unwrap(), super::LinkedFile::Open(fx.path(&file.path)));
+    fs::write(fx.path("attachments/My File.pdf"), b"%PDF").unwrap();
+    assert!(matches!(fx.lib.linked_file(&id, "../attachments/My%20File.pdf").unwrap(), super::LinkedFile::Open(_)));
+    fs::write(fx.path("attachments/run.sh"), "#!/bin/sh\n").unwrap();
+    fs::write(fx.path("attachments/sneaky.pdf"), b"%PDF").unwrap();
+    fs::set_permissions(fx.path("attachments/sneaky.pdf"), fs::Permissions::from_mode(0o755)).unwrap();
+    for shown in ["../attachments/run.sh", "../attachments/sneaky.pdf", "../attachments/README"] {
+        assert!(matches!(fx.lib.linked_file(&id, shown).unwrap(), super::LinkedFile::Reveal(_)), "{shown}");
+    }
+    for refused in ["../../outside.pdf", "https://x.org/a.pdf", "/etc/passwd", "../attachments/missing.pdf", "#top"] {
+        assert!(fx.lib.linked_file(&id, refused).is_err(), "{refused}");
+    }
+}

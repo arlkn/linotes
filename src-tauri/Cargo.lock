@@ -2166,6 +2166,7 @@ dependencies = [
  "chrono",
  "dbus",
  "dirs",
+ "gtk",
  "log",
  "notify",
  "notify-debouncer-full",

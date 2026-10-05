@@ -7,8 +7,8 @@
 //! folder come from native dialogs opened here, on the Rust side.
 
 pub mod app;
+pub mod files;
 pub mod folders;
-pub mod images;
 pub mod import_export;
 pub mod library;
 pub mod notes;

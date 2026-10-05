@@ -40,6 +40,8 @@ dirs = "7.0"
 yaml-rust2 = "0.13"
 
 [target.'cfg(target_os = "linux")'.dependencies]
+# Already used by Tauri; reads files and pictures from the clipboard, which WebKitGTK hides from the page.
+gtk = "0.18"
 # Already used by Tauri's window layer; reads the desktop's light/dark preference.
 dbus = "0.9"
 

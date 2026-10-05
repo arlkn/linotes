@@ -23,7 +23,9 @@ mod storage;
 use state::{AppState, lock};
 use std::sync::atomic::Ordering;
 use tauri::webview::NewWindowResponse;
-use tauri::{AppHandle, Emitter, Manager, Theme, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
+use tauri::{
+    AppHandle, DragDropEvent, Emitter, Manager, Theme, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent,
+};
 
 pub const MAIN_WINDOW: &str = "main";
 /// Sent to the frontend when the user closes the window, so pending edits can be saved first.
@@ -78,8 +80,8 @@ pub fn run() {
             create_main_window(app, &geometry, theme)?.show()?;
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } => {
                 let app = window.app_handle();
                 let state = app.state::<AppState>();
                 // First request: let the frontend save pending edits, then it calls `confirm_close`.
@@ -91,6 +93,12 @@ pub fn run() {
                     persist_window_geometry(app, &webview);
                 }
             }
+            // Files dropped from the file manager: WebKitGTK hides them from the page.
+            // On Linux the position is in the window's logical pixels, as the page measures.
+            WindowEvent::DragDrop(DragDropEvent::Drop { paths, position }) => {
+                commands::files::files_dropped(window.app_handle(), paths.clone(), position.x, position.y);
+            }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             commands::notes::list_notes,
@@ -107,8 +115,11 @@ pub fn run() {
             commands::folders::create_folder,
             commands::folders::rename_folder,
             commands::folders::delete_folder,
-            commands::images::save_image,
-            commands::images::choose_image,
+            commands::files::save_image,
+            commands::files::choose_image,
+            commands::files::add_dropped_files,
+            commands::files::paste_files,
+            commands::files::open_linked_file,
             commands::search::search_notes,
             commands::settings::get_settings,
             commands::settings::update_settings,
@@ -156,7 +167,6 @@ fn create_main_window(
         .theme(Some(theme))
         .background_color(desktop::background_color(theme))
         .initialization_script(desktop::theme_script(theme))
-        .disable_drag_drop_handler()
         .on_navigation(move |url| {
             let allowed = security::is_app_url(url, dev_url.as_ref());
             if !allowed {
