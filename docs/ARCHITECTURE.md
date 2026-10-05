@@ -123,22 +123,35 @@ valid and they never conflict with unsaved typing.
 - **Images** are inline `image` nodes. Their paths are kept in the form parsing gives back
   (readable Unicode; spaces are written as `%20`), so every path survives saving.
 
-### Images
+### Images and files
 
 ```text
-paste / drop / toolbar ──save_image(noteId, bytes)──▶ Library::save_image
-  1. check the content is an image (PNG, JPEG, GIF, WebP, AVIF, BMP, SVG; ≤ 25 MB)
-  2. write it to attachments/ under a free name (never overwriting)
-  3. return a link relative to the note's folder → ![](../attachments/diagram.png)
+drop from Files ──(native, wry)──▶ files-dropped {id, x, y} ──add_dropped_files(noteId, id)──┐
+copied files / picture ──paste_files(noteId) (GTK clipboard, read natively)─────────────────┤
+toolbar ──choose_image(noteId) (file chooser in Rust)───────────────────────────────────────┤
+images the page has (Chromium paste/drop) ──save_image(noteId, bytes)──────────────────────┤
+                                                                                            ▼
+  Library::add_file / save_image
+  1. images (PNG, JPEG, GIF, WebP, AVIF, BMP, SVG; ≤ 25 MB, checked by content) and other
+     files (≤ 100 MB) are written to attachments/ under a free name (never overwriting)
+  2. return a link relative to the note's folder → ![](../attachments/diagram.png)
+     or [Report.pdf](../attachments/Report.pdf)
 
 <img src="linotes-image://localhost/attachments%2Fdiagram.png">
   └─ storage::read_image: only image files inside the notes folder (no `..`, hidden
      folders or symlinks out of it), served with their sniffed type; SVG can't run scripts
 ```
 
-- Links are relative to the note's file, so other Markdown editors show the images too. Moving
-  a note rewrites its image links for the new folder (`storage/attachments.rs`); only the link
-  destinations change. Trashed notes resolve images against the folder they came from.
+- WebKitGTK gives the page no data for files dropped from the file manager or pasted after
+  copying them there (nor for a copied picture). Drops are therefore taken by the native drop
+  handler: the backend keeps the paths and the page claims them by id, so paths still never come
+  from the web view. An empty paste asks the backend to read the clipboard.
+- Links are relative to the note's file, so other Markdown editors find the files too. Moving
+  a note rewrites its image and file links for the new folder (`storage/attachments.rs`); only
+  the link destinations change. Trashed notes resolve images against the folder they came from.
+- Ctrl+Click on a link to a file calls `open_linked_file`: files inside the notes folder open in
+  their usual app if they are a common document, image, audio, video or archive type and not
+  executable; anything else is shown in Files.
 - Importing Markdown copies the local images it links to (inside the imported folder, or next
   to an imported file) into `attachments/`.
 - Web images are never fetched: the CSP allows images only from the app, `data:`, `blob:` and

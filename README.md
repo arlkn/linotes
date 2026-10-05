@@ -51,9 +51,11 @@ the Linux desktop. Linotes takes a different path:
 - Markdown shortcuts while typing (`#`, `-`, `[ ]`, `>`, ```` ``` ````, `**bold**`…)
 - A **Markdown mode** for editing the raw source, switchable at any time (`Ctrl+Shift+M`)
 - Pasting Markdown text inserts formatted content
-- **Images**: paste a screenshot, drag pictures in from Files, or use the toolbar button. They are
-  saved as ordinary files in an `attachments` folder and linked with standard Markdown, so other
-  editors show them too. Web images are never loaded (privacy); they appear as a card with a link
+- **Images and files**: paste a screenshot, drag pictures or other files (PDFs, documents…) in
+  from Files, or paste files you copied there. Everything is saved as ordinary files in an
+  `attachments` folder and linked with standard Markdown, so other editors find them too; images
+  show in the note, other files become links that open with Ctrl+Click. Web images are never
+  loaded (privacy); they appear as a card with a link
 - Automatic saving while you type, word and character counts, save status
 
 **Organising**

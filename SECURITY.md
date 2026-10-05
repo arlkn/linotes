@@ -39,6 +39,11 @@ Linotes is a local application. It protects your notes against **data loss** and
   protocol, which serves only image files (checked by content) inside the notes folder — no `..`,
   hidden folders or symbolic links that lead outside it. SVG images are served with a policy that
   stops scripts. Added images are checked by content and limited to 25 MB.
+- **Files open only if they can't run a program.** Ctrl+Clicking a link to a file in the notes
+  folder opens it in its usual app only for common document, image, audio, video and archive
+  types that aren't executable; anything else is shown in Files. Files dropped on the window or
+  copied in the file manager are read by the Rust side — dropped paths are kept there and claimed
+  by id, so the web view still never supplies a path.
 - **Controlled external links.** Only `http:`, `https:` and `mailto:` links are handed to the
   system, after validation in Rust.
 - **Careful imports.** Only regular `.md`, `.markdown`, `.mdown`, `.mkd` and `.txt` files up to

@@ -43,16 +43,20 @@ Files without a header are indexed as they are (the title comes from the file na
 a header the first time it saves changes to such a note. Merely opening or indexing a note never
 modifies it. A byte-order mark and Windows line endings are preserved.
 
-### Images
+### Images and other files
 
-Images you add to a note — pasted, dropped or inserted — are stored in `attachments/` at the top
-of the notes folder (for example `attachments/diagram.png`, or `attachments/image-20261004-183012.png`
-for a pasted screenshot). Existing files are never overwritten. The note links to the image with an
-ordinary relative Markdown link, such as `![](../attachments/diagram.png)` from a note in a
-folder, so other Markdown editors show it too.
+Images and files you add to a note — pasted, dropped or inserted — are stored in `attachments/`
+at the top of the notes folder (for example `attachments/diagram.png`, `attachments/Report.pdf`,
+or `attachments/image-20261004-183012.png` for a pasted screenshot). Existing files are never
+overwritten. The note links to them with ordinary relative Markdown links, such as
+`![](../attachments/diagram.png)` or `[Report.pdf](../attachments/Report.pdf)` from a note in a
+folder, so other Markdown editors find them too.
 
-- Moving a note to another folder updates its image links; nothing else in the file changes.
-- Images stay when a note is deleted (other notes may use them).
+- Ctrl+Click a link to a file to open it in its usual app. Only common document, image, audio,
+  video and archive files are opened; anything else (scripts, programs) is shown in Files.
+- Moving a note to another folder updates its image and file links; nothing else in the file
+  changes.
+- Files stay when a note is deleted (other notes may use them).
 - Images that a note already links to elsewhere in the notes folder (for example next to the
   note) are shown as well. Web images (`https://…`) are never loaded.
 - `attachments` is not shown as a folder in Linotes, and its name is reserved at the top level.
